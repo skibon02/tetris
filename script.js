@@ -1,29 +1,29 @@
-
-let rootLayout = new Layout();
-rootLayout.buildFixed(500, 500);
-
 let lines = [];
 let layouts = [];
 let views = [];
 let bg = [0,0,0];
-switch(rootLayout.getState()) {
-case LayoutState.FreeResize: {
+
+
+let rootLayout = new Layout(3, 3);
+try {
+    rootLayout.buildFixed(300, 300);
+}
+catch(e) {
+    bg = [1, 0.3, 0.6];
+    console.log(e)
+}
+
+if(rootLayout.getState() == LayoutState.Ok) {
     bg = [1, 0.9, 1];
     console.log('Layout built successfully!');
     lines = rootLayout.getGridLines();
-    layouts = [...layouts, ...rootLayout.getBoundingBox()];
-    views = [...views, ...rootLayout.getViews()];
-    break;
+    layouts = layouts.concat(rootLayout.getBoundingBox());
+    views = views.concat(rootLayout.getViews());
 }
 
-case LayoutState.Unbuilt: {
-    bg = [1, 0.6, 0.8];
-    break;
-}
-}
+
 (async () => {
     let gl;
-
     function createShader(gl, type, source) {
         var shader = gl.createShader(type);
         gl.shaderSource(shader, source);
@@ -137,7 +137,7 @@ case LayoutState.Unbuilt: {
     var linesBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
     for(let i = 0; i < lines.length; i++) {
-        lines[i] += 100;
+        lines[i] += 150;
     }
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
 
@@ -146,7 +146,7 @@ case LayoutState.Unbuilt: {
     var layoutsBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, layoutsBuffer);
     for(let i = 0; i < layouts.length; i++) {
-        layouts[i] += 100;
+        layouts[i] += 150;
     }
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(layouts), gl.STATIC_DRAW);
 
@@ -154,7 +154,7 @@ case LayoutState.Unbuilt: {
     var viewsBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, viewsBuffer);
     for(let i = 0; i < views.length; i++) {
-        views[i] += 100;
+        views[i] += 150;
     }
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(views), gl.STATIC_DRAW);
 
