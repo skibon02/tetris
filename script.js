@@ -122,8 +122,8 @@ if(rootLayout.getState() == LayoutState.Ok) {
 
         
     //init shaders
-    var vertexShader = createShader(gl, gl.VERTEX_SHADER, await fetch("/shaders/vert.glsl").then(r=> r.text()));
-    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, await fetch("/shaders/frag.glsl").then(r=> r.text()));
+    var vertexShader = createShader(gl, gl.VERTEX_SHADER, await fetch("shaders/vert.glsl").then(r=> r.text()));
+    var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, await fetch("shaders/frag.glsl").then(r=> r.text()));
 
     var program = createProgram(gl, vertexShader, fragmentShader);
     gl.useProgram(program);
