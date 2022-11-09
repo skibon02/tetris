@@ -20,7 +20,7 @@ const LayoutType = {
 
 const TreeEdgeType = {
     Fixed: 'Fixed',
-    Var: 'Var'
+    Var: 'Variable'
 }
 class Constraint {
     constructor(fixed, loc1, loc2 = null) {
@@ -118,7 +118,7 @@ class Layout {
                     groups[axis][g1].push(v2);
                     vertex_group[axis][v2] = g1;
                 }
-                this.resTree[axis][[Math.min(v1,v2), Math.max(v1,v2)]] = {type: TreeEdgeType.Fixed, dir: v2>v1 ? 1 : -1, val: this.resConstraints[i].val};
+                this.resTree[axis][[Math.min(v1,v2), Math.max(v1,v2)]] = {type: TreeEdgeType.Fixed, dir: v2>v1 ? 1 : -1, value: this.resConstraints[i].val};
             }
         }
     }
@@ -133,7 +133,7 @@ class Layout {
         this.vertex_F_group[axis][v1];
         if(this.resTree[axis][[Math.min(v2, v1), Math.max(v2, v1)]]) {
             let treeEdge = this.resTree[axis][[Math.min(v2, v1), Math.max(v2, v1)]];
-            return treeEdge.val * treeEdge.dir;
+            return treeEdge.value * treeEdge.dir;
         }
         else {
             throw new Error('Failed to get fixed value. Tree search is not implemented yet.');
@@ -222,11 +222,6 @@ class Layout {
                 edge_P_group[['y', minv, maxv]] = P_groups.length-1; //create new edge between i and any vertex from existing group (F_groups.y[0][0])
             }
         }
-
-        console.log('new F_groups:');
-        console.log(this.F_groups);
-        console.log(this.vertex_F_group);
-        console.log(this.resTree);
 
         for(let constraint of this.resConstraints) {
             if(!constraint.fixed) {
@@ -402,22 +397,43 @@ class Layout {
             }
         }
 
-        console.log('P_groups:');
-        console.log(P_groups);
-        console.log(edge_P_group);
-        console.log(fg_edge_P_group);
         console.log(this.resTree);
-
-        //manually filled data: (temp)
+        // TODO: implement DFS to calculate final values for layout
         this.resolvedX[0] = 0;
         this.resolvedY[0] = 0;
-        this.resolvedX[1] = this.resConstraints[0].val/2;
-        this.resolvedY[1] = this.resConstraints[1].val/2;
-        this.resolvedX[2] = this.resConstraints[0].val;
-        this.resolvedY[2] = this.resConstraints[1].val;
+        for(let edge in this.resTree.x) {
+            this.resTree.x[edge].visited = false;
+        }
+        for(let edge in this.resTree.y) {
+            this.resTree.y[edge].visited = false;
+        }
+        this.dfsSolve('x', 0, 0);
+        this.dfsSolve('y', 0, 0);
 
         this.state = LayoutState.Ok;
         this.type = LayoutType.Fixed;
+    }
+
+    dfsSolve(axis, v) {
+        for(let edge of Object.keys(this.resTree[axis])) {
+            edge = edge.split(',');
+            if((edge[0] == v || edge[1] == v) && this.resTree[axis][edge].visited == false) {
+                let dir = edge[0] == v ? 1 : -1;
+                let next = edge[0] == v ? edge[1] : edge[0];
+                if(this.resTree[axis][edge].type == TreeEdgeType.Fixed) {
+                    if(axis == 'x') {
+                        this.resolvedX[next] = this.resolvedX[v] + dir * this.resTree[axis][edge].value;
+                    } else {
+                        this.resolvedY[next] = this.resolvedY[v] + dir * this.resTree[axis][edge].value;
+                    }
+                    this.resTree[axis][edge].visited = true;
+                    this.dfsSolve(axis, next);
+                }
+                else {
+                    throw new Error('Not implemented! Variable edge detected!');
+                }
+            }
+        }
     }
     getState() {
         return this.state;
