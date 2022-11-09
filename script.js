@@ -5,6 +5,8 @@ let bg = [0,0,0];
 
 
 let rootLayout = new Layout(3, 3);
+rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 1, 2], 1));
+rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['y', 1, 2], 1));
 try {
     rootLayout.buildFixed(300, 300);
 }
