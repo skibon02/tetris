@@ -161,7 +161,6 @@ class Layout {
             this.vertex_C_group.x[v] = this.vertex_F_group.x[v];
         for(let v in this.vertex_F_group.y)
             this.vertex_C_group.y[v] = this.vertex_F_group.y[v];
-        debugger;
         this.find_groups(this.C_groups, this.vertex_C_group, false, touched_v);
         
         console.log(this.C_groups);
@@ -172,10 +171,10 @@ class Layout {
         //manually filled data: (temp)
         this.resolvedX[0] = 0;
         this.resolvedY[0] = 0;
-        this.resolvedX[1] = this.constraints[0].val/2;
-        this.resolvedY[1] = this.constraints[1].val/2;
-        this.resolvedX[2] = this.constraints[0].val;
-        this.resolvedY[2] = this.constraints[1].val;
+        this.resolvedX[1] = this.resConstraints[0].val/2;
+        this.resolvedY[1] = this.resConstraints[1].val/2;
+        this.resolvedX[2] = this.resConstraints[0].val;
+        this.resolvedY[2] = this.resConstraints[1].val;
 
         this.state = LayoutState.Ok;
         this.type = LayoutType.Fixed;
