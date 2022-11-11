@@ -494,7 +494,6 @@ class Layout {
             }
         }
         
-        debugger;
         for(let i = 0; i < P_groups.length; i++) {
             if(P_groups[i].fixed) {
                 // calculate value for group edges
@@ -583,7 +582,6 @@ class Layout {
     }
 
     getBoundingBox() {
-        debugger;
         return Rect(this.resolvedX[0],this.resolvedY[0],this.resolvedX[this.xlines-1]-this.resolvedX[0],this.resolvedY[this.ylines-1]-this.resolvedY[0]);
     }
 

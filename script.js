@@ -25,28 +25,16 @@ let bg = [0,0,0];
 // rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 1, 2], 1));
 // rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 2], ['y', 0, 1], 1));
 
-let rootLayout = new Layout(5, 2);
-rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 3], ['x', 1, 2], 0.3));
-rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 3, 4], 1));
-rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 3], ['y', 0, 1], .8));
-try {
-    rootLayout.buildFixed(800, 400);
-}
-catch(e) {
-    bg = [1, 0.3, 0.6];
-    console.log(e)
-}
 
-if(rootLayout.getState() == LayoutState.Ok) {
-    bg = [1, 0.9, 1];
-    console.log('Layout built successfully!');
-    lines = rootLayout.getGridLines();
-    layouts = layouts.concat(rootLayout.getBoundingBox());
-    views = views.concat(rootLayout.getViews());
-}
+// let rootLayout = new Layout(6, 2);
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 4, 5], 1));// error if first
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 4], ['x', 1, 2], 0.2952));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 4], ['x', 1, 3], 0.7048));
+// rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['x', 1, 4], 1.2207));
 
 
 (async () => {
+    let canvas = document.querySelector("#c");
     let gl;
     function createShader(gl, type, source) {
         var shader = gl.createShader(type);
@@ -74,6 +62,42 @@ if(rootLayout.getState() == LayoutState.Ok) {
         console.log(gl.getProgramInfoLog(program));
         gl.deleteProgram(program);
     }
+    function createLayout(w, h) {
+        let rootLayout = new Layout(6, 2);
+        rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 4], ['x', 1, 2], 0.2952));
+        rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 4], ['x', 1, 3], 0.7048));
+        rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['x', 1, 4], 1.2207));
+        rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 4, 5], 1));
+        try {
+            rootLayout.buildFixed(w, h);
+        }
+        catch(e) {
+            bg = [1, 0.3, 0.6];
+            console.log(e)
+        }
+    
+        if(rootLayout.getState() == LayoutState.Ok) {
+            bg = [1, 0.9, 1];
+            console.log('Layout built successfully!');
+            lines = rootLayout.getGridLines();
+            layouts = rootLayout.getBoundingBox();
+            views = rootLayout.getViews();
+        }
+        //lines buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
+    
+    
+        // layout buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, layoutsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(layouts), gl.STATIC_DRAW);
+    
+        // views buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, viewsBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(views), gl.STATIC_DRAW);
+    
+        return rootLayout;
+    }
     function resizeCanvasToDisplaySize(entries) {
         for(let entry of entries) {
             let canvas = entry.target;
@@ -88,6 +112,8 @@ if(rootLayout.getState() == LayoutState.Ok) {
 
             if (needResize) {
                 // Make the canvas the same size
+                rootLayout = createLayout(displayWidth, displayHeight);
+
                 canvas.width  = displayWidth;
                 canvas.height = displayHeight;
                 gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -134,7 +160,6 @@ if(rootLayout.getState() == LayoutState.Ok) {
 
         window.requestAnimationFrame(draw);
     }
-    let canvas = document.querySelector("#c");
 
     const resizeObserver = new ResizeObserver(resizeCanvasToDisplaySize);
     resizeObserver.observe(canvas);
@@ -144,6 +169,11 @@ if(rootLayout.getState() == LayoutState.Ok) {
         console.log('No webGL :(');
     }
 
+    var linesBuffer = gl.createBuffer();
+    var layoutsBuffer = gl.createBuffer();
+    var viewsBuffer = gl.createBuffer();
+    let rootLayout = createLayout(canvas.width, canvas.height);
+    resizeCanvasToDisplaySize([{target: canvas}]);
         
     //init shaders
     var vertexShader = createShader(gl, gl.VERTEX_SHADER, await fetch("shaders/vert.glsl").then(r=> r.text()));
@@ -156,31 +186,6 @@ if(rootLayout.getState() == LayoutState.Ok) {
     const myVAO = gl.createVertexArray();
     gl.bindVertexArray(myVAO);
     gl.enableVertexAttribArray(positionAttributeLocation);
-
-    //lines buffer
-    var linesBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
-    for(let i = 0; i < lines.length; i++) {
-        lines[i] += 150;
-    }
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(lines), gl.STATIC_DRAW);
-
-
-    // layout buffer
-    var layoutsBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, layoutsBuffer);
-    for(let i = 0; i < layouts.length; i++) {
-        layouts[i] += 150;
-    }
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(layouts), gl.STATIC_DRAW);
-
-    // views buffer
-    var viewsBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, viewsBuffer);
-    for(let i = 0; i < views.length; i++) {
-        views[i] += 150;
-    }
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(views), gl.STATIC_DRAW);
 
 
     //setup the viewport
