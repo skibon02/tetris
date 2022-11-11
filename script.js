@@ -4,11 +4,33 @@ let views = [];
 let bg = [0,0,0];
 
 
-let rootLayout = new Layout(3, 3);
-rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 1, 2], 1));
-rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['y', 1, 2], 1));
+// error case
+// let rootLayout = new Layout(4, 4);
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 2], ['y', 1, 2], 1));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 3], ['x', 0, 1], 0.2));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 3], ['x', 0, 2], 0.4));
+// rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 3], ['y', 0, 1], 0.3));
+// rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 3], ['y', 0, 2], 0.7));
+
+//not implemented case 2
+// let rootLayout = new Layout(4, 4);
+// rootLayout.addConstraints(new FixedConstraint(['y', 2, 3], 100));
+// rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['y', 1, 2], 3));//probelem here
+// rootLayout.addConstraints(new FixedConstraint(['x', 0, 1], 100));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 2], ['x', 2, 3], 3));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 2], ['y', 1, 2], 1));
+
+
+// let rootLayout = new Layout(3, 2);
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 1, 2], 1));
+// rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 2], ['y', 0, 1], 1));
+
+let rootLayout = new Layout(5, 2);
+rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 3], ['x', 1, 2], 0.3));
+rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 3, 4], 1));
+rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 3], ['y', 0, 1], .8));
 try {
-    rootLayout.buildFixed(300, 300);
+    rootLayout.buildFixed(800, 400);
 }
 catch(e) {
     bg = [1, 0.3, 0.6];
