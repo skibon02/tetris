@@ -52,55 +52,163 @@ class Tetris {
 
         this.init();
         this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+        this.DAStm = null;
+        this.ARRint = null;
+
+        this.DAS = 160;
+        this.ARR = 30;
+        this.SDF = 16;
     }
     getRandomPiece() {
         let n = Math.floor(Math.random() * this.pieces.length);
         let piece = {piece: [...this.pieces[n]], color: n};
         return piece;
     }
-    harddrop() {
 
+    testIntersection() {
+        let piece = this.curPiece.piece;
+        let loc = this.pieceLoc;
+        for(let i = 0; i < piece.length; i++) {
+            for(let j = 0; j < piece[i].length; j++) {
+                if(piece[i][j] == 1 && (this.field[loc[0] + j][loc[1] + i] != -1 || loc[1] + i > 20)) {
+                    debugger;
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    placePiece() {
+        let piece = this.curPiece.piece;
+        let loc = this.pieceLoc;
+        for(let i = 0; i < piece.length; i++) {
+            for(let j = 0; j < piece[i].length; j++) {
+                if(piece[i][j] == 1) {
+                    this.field[loc[0] + j][loc[1] + i] = this.curPiece.color;
+                }
+            }
+        }
+        this.curPiece = this.getRandomPiece();
+        this.pieceLoc = [4, 0];
+        this.tickPeriod = 1000;
+        clearTimeout(this.ticktm);
+        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+    }
+    harddrop() {
+        while(this.pieceLoc[1] < 20) {
+            if(this.testIntersection())
+                break;
+            this.pieceLoc[1]++;
+        }
+        this.pieceLoc[1]--;
+
+        this.placePiece();
+    }
+    movePiece(action) {
+        let leftbound = 10;
+        let rightbound = -1;
+        let piece = this.curPiece.piece;
+        let loc = this.pieceLoc;
+        for(let i = 0; i < piece.length; i++) {
+            let colTouched = false;
+            for(let j = 0; j < piece[i].length; j++) {
+                if(piece[j][i] == 1) {
+                    colTouched = true;
+                    break;
+                }
+            }
+            if(colTouched) {
+                if(leftbound > i) {
+                    leftbound = i;
+                }
+                if(rightbound < i) {
+                    rightbound = i;
+                }
+            }
+        }
+
+        if(action == -1 && this.pieceLoc[0] + leftbound == 0) return;
+        if(action == 1 && this.pieceLoc[0] - rightbound == 10) return;
+        this.pieceLoc[0] += action;
     }
     keydown(e) {
+        if(e.repeat) return;
+        console.log(e);
         var code = e.keyCode;
         let action = 0;
         switch (code) {
             case 37: action = -1; break; //Left key
             case 39: action = 1; break; //Right key
             case 40: action = 'sd'; break; //softdrop
-            case 83: action = 'l'; break; //rotate left
-            case 70: action = 'r'; break; //rotate left
+            case 70: action = 'l'; break;
+            case 68: action = 'r'; break;
+            case 83: action = 'll'; break; 
             case 32: action = 'hd'; break; //harddrop
 
             default: console.log(code); break;
         }
 
         if(action === 1 || action === -1) {
-            if(action == -1 && this.pieceLoc[0] == 0) return;
-            if(action == 1 && this.pieceLoc[0] == 10 - this.pieces[this.curPiece].length) return;
-            this.pieceLoc[0] += action;
+            this.movePiece(action);
+
+            clearTimeout(this.DAStm);
+            if(this.ARRint)
+                clearInterval(this.ARRint);
+
+            this.DAStm = setTimeout(() => {
+                this.ARRint = setInterval(() => {
+                    this.movePiece(action);
+                }, this.ARR);
+            }, this.DAS);
         }
-        else if(action === 'l' || action === 'r') {
+        else if(action === 'l' || action === 'r' || action === 'll') {
+            let piece = this.curPiece.piece;
+            let newPiece = new Array(piece[0].length);
+            for(let i = 0; i < newPiece.length; i++) {
+                newPiece[i] = new Array(piece.length);
+            }
+            for(let i = 0; i < piece.length; i++) {
+                for(let j = 0; j < piece[i].length; j++) {
+                    if(action === 'l') newPiece[j][piece.length - 1 - i] = piece[i][j];
+                    else if(action === 'r') newPiece[piece[i].length - 1 - j][i] = piece[i][j];
+                    else if(action === 'll') newPiece[piece[i].length - 1 - i][piece[i].length - 1 - j] = piece[i][j];
+                }
+            }
+            this.curPiece.piece = newPiece;
         }
         else if(action === 'hd') {
             this.harddrop();
         }
         else if(action === 'sd') {
-            this.tickPeriod = 100;
-            clearInterval(this.ticktm);
+            this.tickPeriod /= this.SDF;
+            clearTimeout(this.ticktm);
             this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
         }
 
     }
     keyup(e) {
+        if(e.repeat) return;
         var code = e.keyCode;
         let action = 0;
         switch (code) {
             case 40: action = 'sd'; break; //softdrop
+            case 37: action = 1; break;
+            case 39: action = -1; break; 
         }
 
         if(action == 'sd') {
-            this.tickPeriod = 1000;
+            clearTimeout(this.ticktm);
+            this.tickPeriod *= this.SDF;
+            this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+        }
+        if(action === 1 || action === -1) {
+            
+            clearTimeout(this.DAStm);
+            if(this.ARRint) {
+                clearInterval(this.ARRint);
+                this.ARRint = null;
+            }
+            this.DAStm = null;
         }
     }
     async init() {
@@ -121,8 +229,8 @@ class Tetris {
         this.resizeCanvasToDisplaySize([{target: canvas}]);
             
         //init shaders
-        var vertexShader = this.createShader(gl.VERTEX_SHADER, await fetch("/shaders/vert.glsl").then(r=> r.text()));
-        var fragmentShader = this.createShader(gl.FRAGMENT_SHADER, await fetch("/shaders/frag.glsl").then(r=> r.text()));
+        var vertexShader = this.createShader(gl.VERTEX_SHADER, await fetch("shaders/vert.glsl").then(r=> r.text()));
+        var fragmentShader = this.createShader(gl.FRAGMENT_SHADER, await fetch("shaders/frag.glsl").then(r=> r.text()));
     
         var program = this.createProgram(vertexShader, fragmentShader);
         gl.useProgram(program);
@@ -154,7 +262,7 @@ class Tetris {
 
         // Asynchronously load an image
         var image = new Image();
-        image.src = "/resources/quad.png";
+        image.src = "resources/quad.png";
         image.addEventListener('load', function() {
         // Now that the image has loaded make copy it to the texture.
             gl.bindTexture(gl.TEXTURE_2D, texture);
