@@ -70,9 +70,14 @@ class Tetris {
         let loc = this.pieceLoc;
         for(let i = 0; i < piece.length; i++) {
             for(let j = 0; j < piece[i].length; j++) {
-                if(piece[i][j] == 1 && (this.field[loc[0] + j][loc[1] + i] != -1 || loc[1] + i > 20)) {
-                    debugger;
-                    return true;
+                if(loc[0] + j < 0 || loc[0] + j > 9 || loc[1] + i > 19) {
+                    if(piece[i][j] == 1) {
+                        return true;
+                    }
+                } else if(loc[1] + i >= 0) {
+                    if(piece[i][j] == 1 && this.field[loc[0] + j][loc[1] + i] != -1) {
+                        return true;
+                    }
                 }
             }
         }
@@ -128,8 +133,11 @@ class Tetris {
         }
 
         if(action == -1 && this.pieceLoc[0] + leftbound == 0) return;
-        if(action == 1 && this.pieceLoc[0] - rightbound == 10) return;
+        if(action == 1 && this.pieceLoc[0] + rightbound == 9) return;
         this.pieceLoc[0] += action;
+        if(this.testIntersection()) {
+            this.pieceLoc[0] -= action;
+        }
     }
     keydown(e) {
         if(e.repeat) return;
@@ -175,6 +183,9 @@ class Tetris {
                 }
             }
             this.curPiece.piece = newPiece;
+            if(this.testIntersection()) {
+                this.curPiece.piece = piece;
+            }
         }
         else if(action === 'hd') {
             this.harddrop();
@@ -254,22 +265,36 @@ class Tetris {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
         gl.enableVertexAttribArray(this.texcoordAttributeLocation);
         
-        let texture = gl.createTexture();
+        this.texture = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0 + 0);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.bindTexture(gl.TEXTURE_2D, this.texture);
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
             new Uint8Array([0, 0, 255, 255]));
 
         // Asynchronously load an image
         var image = new Image();
         image.src = "resources/quad.png";
-        image.addEventListener('load', function() {
+        image.addEventListener('load', (function() {
         // Now that the image has loaded make copy it to the texture.
-            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.bindTexture(gl.TEXTURE_2D, this.texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
             gl.generateMipmap(gl.TEXTURE_2D);
-        });
+        }).bind(this));
+
+        this.bgtexture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + 1);
+        gl.bindTexture(gl.TEXTURE_2D, this.bgtexture);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+            new Uint8Array([0, 0, 255, 255]));
  
+        var imagebg = new Image();
+        imagebg.src = "resources/quad.png";
+        imagebg.addEventListener('load', function() {
+        // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, this.bgtexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imagebg);
+            gl.generateMipmap(gl.TEXTURE_2D);
+        });
         // Tell the attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
         var size = 2;          // 2 components per iteration
         var type = gl.FLOAT;   // the data is 32bit floating point values
@@ -448,8 +473,11 @@ class Tetris {
 
     tick() {
         this.pieceLoc[1]++;
-
-
+        if(this.testIntersection())
+        {
+            this.pieceLoc[1]--;
+            this.placePiece();
+        }
         this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
     }
 }
