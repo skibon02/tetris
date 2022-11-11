@@ -7,10 +7,23 @@
     <link rel="stylesheet" href="style.css">
     <title>SkyGrel19's tetris!</title>
 </head>
-<body>
-    <canvas id="c">
+<body class="inp-screen">
+    <canvas class="full" id="c">
 
     </canvas>
+    <div class="full">
+        <div class="center">
+            <h1>SkyGrel19's tetris</h1>
+            <input type="text">
+            <button onclick="startGame()">Начать игру</button>
+        </div>
+    </div>
+    <div class="leaderboard">
+        <h3>Leaderboard</h3>
+        <div class="leaderboard-content">
+        </div>
+    </div>
+    <script src="tetris.js"></script>
     <script src="layoutEngine.js"></script>
     <script src="script.js"></script>
 </body>

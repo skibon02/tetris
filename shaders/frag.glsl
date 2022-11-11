@@ -1,14 +1,14 @@
 #version 300 es
-// fragment shaders don't have a default precision so we need
-// to pick one. mediump is a good default
+
 precision mediump float;
 
+in vec2 v_texcoord;
+
 uniform vec3 u_color;
+uniform sampler2D u_texture;
 
 out vec4 outColor;
 
 void main() {
-  // gl_FragColor is a special variable a fragment shader
-  // is responsible for setting
-  outColor = vec4(u_color, 1); // return reddish-purple
+  outColor = texture(u_texture, v_texcoord) * vec4(u_color, 1);
 }

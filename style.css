@@ -9,11 +9,8 @@ body {
         sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-}
 
-code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-        monospace;
+    background-color: rgb(178, 219, 247);
 }
 .App {
     text-align: center;
@@ -23,8 +20,36 @@ button {
     margin-left: 1em;
 }
 
-#c{
-    display: block;
+.inp-screen canvas.full {
+    display: none;
+}
+.game-screen div.full {
+    display: none;
+}
+
+.full {
     width: 100%;
     height: 100vh;
+}
+
+body > div {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.leaderboard {
+    position: fixed;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.leaderboard-item {
+    display: flex;
+    flex-direction: row;
+}
+.leaderboard-item > div {
+    margin: 0 1em;
 }
