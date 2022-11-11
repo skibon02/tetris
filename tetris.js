@@ -288,13 +288,13 @@ class Tetris {
             new Uint8Array([0, 0, 255, 255]));
  
         var imagebg = new Image();
-        imagebg.src = "resources/quad.png";
-        imagebg.addEventListener('load', function() {
+        imagebg.src = "resources/field.png";
+        imagebg.addEventListener('load', (function() {
         // Now that the image has loaded make copy it to the texture.
             gl.bindTexture(gl.TEXTURE_2D, this.bgtexture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imagebg);
             gl.generateMipmap(gl.TEXTURE_2D);
-        });
+        }).bind(this));
         // Tell the attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
         var size = 2;          // 2 components per iteration
         var type = gl.FLOAT;   // the data is 32bit floating point values
@@ -416,6 +416,20 @@ class Tetris {
         ];
     }
 
+    getBgQuad() {
+        let xoffs = this.rootLayout.resolvedX[1];
+        let fieldWidth = this.rootLayout.resolvedX[4] - this.rootLayout.resolvedX[1];
+        let fieldHeight = this.rootLayout.resolvedY[1] - this.rootLayout.resolvedY[0];
+        return [
+            xoffs, 0,
+            xoffs + fieldWidth, 0,
+            xoffs, fieldHeight,
+            xoffs, fieldHeight,
+            xoffs + fieldWidth, 0,
+            xoffs + fieldWidth, fieldHeight
+        ];
+    }
+
     draw(timestamp) {  
         // Clear the canvas
         this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
@@ -425,7 +439,17 @@ class Tetris {
         var primitiveType = this.gl.TRIANGLES;
         var offset = 0;
         
-        var count = 0;
+        
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.bgtexture);
+        this.gl.uniform3f(this.colorUniformLocation, 1, 1, 1);
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getBgQuad()), this.gl.STATIC_DRAW);
+        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.drawArrays(primitiveType, offset, 6);
+
+        this.gl.activeTexture(this.gl.TEXTURE0);
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
         for(let i = 0; i < this.field.length; i++) {
             for(let j = 0; j < this.field[i].length; j++) {
                 if(this.field[i][j] == -1) {
@@ -437,7 +461,6 @@ class Tetris {
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(i, j)), this.gl.STATIC_DRAW);
                 this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
                 this.gl.drawArrays(primitiveType, offset, 6);
-                count++;
             }
         }
         for(let i = 0; i < this.curPiece.piece.length; i++) {
@@ -451,7 +474,6 @@ class Tetris {
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(j + this.pieceLoc[0], i + this.pieceLoc[1])), this.gl.STATIC_DRAW);
                 this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
                 this.gl.drawArrays(primitiveType, offset, 6);
-                count++;
             }
         }
         // gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
