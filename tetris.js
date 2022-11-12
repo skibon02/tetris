@@ -4,7 +4,10 @@ class Tetris {
         this.addScore = addScore;
         this.score = 0;
         this.bg = [0,0,0];
-        this.tickPeriod = 1000;
+        this.baseTickPeriod = 1000;
+        this.touchTickPeriod = 500;
+        this.tickPeriod = this.baseTickPeriod;
+        this.oneLevelHoldPeriod = 3000;
         this.colors = [
             [1, 1, 0],
             [1, 0, 1],
@@ -18,13 +21,13 @@ class Tetris {
         this.pieces = [
             [[1, 1],
             [1, 1]],
-            [[1, 1, 1],
-            [0, 1, 0],
-            [0, 0, 0]],
-            [[1, 0, 0],
+            [[0, 1, 0],
             [1, 1, 1],
             [0, 0, 0]],
             [[0, 0, 1],
+            [1, 1, 1],
+            [0, 0, 0]],
+            [[1, 0, 0],
             [1, 1, 1],
             [0, 0, 0]],
             [[0, 0, 0, 0],
@@ -39,7 +42,52 @@ class Tetris {
             [0, 0, 0]]
         ]
 
+        this.rightRotateKickData = [
+            [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]], // 3 -> 0
+            [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], // 0 -> 1
+            [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]], // 1 -> 2
+            [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]], // 2 -> 3
+        ]
+        this.leftRotateKickData = [
+            [[0, 0], [1, 0], [1, -1], [0, 2], [1, 2]], // 1 -> 0
+            [[0, 0], [-1, 0], [-1, 1], [0, -2], [-1, -2]], // 2 -> 1 
+            [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]], // 3 -> 2
+            [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]], // 0 -> 3 
+        ]
+        this.halfRotateKickData = [
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 2 -> 0
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 3 -> 1
+        ]
+        this.rightRotateKickDataI = [
+            [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]], // 3 -> 0
+            [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]], // 0 -> 1
+            [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]], // 1 -> 2
+            [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]], // 2 -> 3
+        ]
+        this.leftRotateKickDataI = [
+            [[0, 0], [2, 0], [-1, 0], [2, 1], [-1, -2]], // 1 -> 0
+            [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]], // 2 -> 1
+            [[0, 0], [-2, 0], [1, 0], [-2, -1], [1, 2]], // 3 -> 2
+            [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]], // 0 -> 3
+        ]
+        this.halfRotateKickDataI = [
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 2 -> 0
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 3 -> 1
+        ]
+
+        this.touchingGroundInputsReset = 15;
+
+        this.oneLevelHoldPossible = true;
+        this.oneLevelHoldtm = null;
+        this.softDropActive = false;
+        this.touchingGround = false;
+        this.touchingGroundInputs = this.touchingGroundInputsReset;
         this.curPiece = this.getRandomPiece();
+        this.curRotation = 0;
         this.pieceLoc = [4, 0];
 
         this.field = new Array(10);
@@ -51,13 +99,13 @@ class Tetris {
         }
 
         this.init();
-        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
         this.DAStm = null;
         this.ARRint = null;
 
         this.DAS = 160;
         this.ARR = 30;
-        this.SDF = 16;
+        this.SDF = 15;
+        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
     }
     getRandomPiece() {
         let n = Math.floor(Math.random() * this.pieces.length);
@@ -94,8 +142,15 @@ class Tetris {
             }
         }
         this.curPiece = this.getRandomPiece();
-        this.pieceLoc = [4, 0];
-        this.tickPeriod = 1000;
+        this.pieceLoc = [3, 0];
+        if( this.curPiece.color == 0) {
+            this.pieceLoc = [4, 0];
+        }
+        this.curRotation = 0;
+        this.tickPeriod = this.baseTickPeriod;
+        this.softDropActive = false;
+        this.touchingGroundInputs = this.touchingGroundInputsReset;
+        
         clearTimeout(this.ticktm);
         this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
     }
@@ -134,26 +189,30 @@ class Tetris {
 
         if(action == -1 && this.pieceLoc[0] + leftbound == 0) return;
         if(action == 1 && this.pieceLoc[0] + rightbound == 9) return;
+        let actionPerformed = true;
         this.pieceLoc[0] += action;
         if(this.testIntersection()) {
             this.pieceLoc[0] -= action;
+            actionPerformed = false;
         }
+
+        if(actionPerformed)
+            this.postMoveAction();
     }
     keydown(e) {
         if(e.repeat) return;
-        console.log(e);
         var code = e.keyCode;
         let action = 0;
         switch (code) {
             case 37: action = -1; break; //Left key
             case 39: action = 1; break; //Right key
             case 40: action = 'sd'; break; //softdrop
-            case 70: action = 'l'; break;
-            case 68: action = 'r'; break;
+            case 70: action = 'r'; break;
+            case 68: action = 'l'; break;
             case 83: action = 'll'; break; 
             case 32: action = 'hd'; break; //harddrop
 
-            default: console.log(code); break;
+            default: console.log('Unknown key code: ', code); break;
         }
 
         if(action === 1 || action === -1) {
@@ -170,32 +229,118 @@ class Tetris {
             }, this.DAS);
         }
         else if(action === 'l' || action === 'r' || action === 'll') {
+            //rotate piece
+            let actionPerformed = false;
             let piece = this.curPiece.piece;
             let newPiece = new Array(piece[0].length);
             for(let i = 0; i < newPiece.length; i++) {
                 newPiece[i] = new Array(piece.length);
             }
+            switch (action) {
+                case 'l':
+                    this.curRotation--;
+                    break;
+                case 'r':
+                    this.curRotation++;
+                    break;
+                case 'll':
+                    this.curRotation += 2;
+                    break;
+            }
             for(let i = 0; i < piece.length; i++) {
                 for(let j = 0; j < piece[i].length; j++) {
-                    if(action === 'l') newPiece[j][piece.length - 1 - i] = piece[i][j];
-                    else if(action === 'r') newPiece[piece[i].length - 1 - j][i] = piece[i][j];
+                    if(action === 'r') newPiece[j][piece.length - 1 - i] = piece[i][j];
+                    else if(action === 'l') newPiece[piece[i].length - 1 - j][i] = piece[i][j];
                     else if(action === 'll') newPiece[piece[i].length - 1 - i][piece[i].length - 1 - j] = piece[i][j];
                 }
             }
+            this.curRotation = (this.curRotation + 4) % 4;
+            console.log(this.curRotation);
+            
             this.curPiece.piece = newPiece;
-            if(this.testIntersection()) {
-                this.curPiece.piece = piece;
+
+            debugger;
+            console.log(this.leftRotateKickDataI[this.curRotation]);
+            if(this.curPiece.color == 0) {
+                //square piece
+                //do nothing
             }
+            else
+                for(let i = 0; i < 5; i++) {
+                    let locOffset;
+                    if(this.curPiece.color == 4) {
+                        //I piece
+                        if(action === 'r')
+                            locOffset = this.rightRotateKickDataI[this.curRotation][i];
+                        if(action === 'l')
+                            locOffset = this.leftRotateKickDataI[this.curRotation][i];
+                        if(action === 'll')
+                            locOffset = this.halfRotateKickDataI[this.curRotation][i];
+                    }
+                    else {
+                        //all other pieces
+                        if(action === 'r')
+                            locOffset = this.rightRotateKickData[this.curRotation][i];
+                        if(action === 'l')
+                            locOffset = this.leftRotateKickData[this.curRotation][i];
+                        if(action === 'll')
+                            locOffset = this.halfRotateKickData[this.curRotation][i];
+                    }
+                    this.pieceLoc[0] += locOffset[0];
+                    this.pieceLoc[1] -= locOffset[1];
+                    if(this.testIntersection()) {
+                        this.pieceLoc[0] -= locOffset[0];
+                        this.pieceLoc[1] += locOffset[1];
+                    }
+                    else {
+                        if(i > 0) {
+                            // debugger;
+                        }
+                        actionPerformed = true;
+                        break;
+                    }
+                }            
+
+            this.postMoveAction();
         }
         else if(action === 'hd') {
             this.harddrop();
         }
         else if(action === 'sd') {
-            this.tickPeriod /= this.SDF;
+            this.softDropActive = true;
+            this.tickPeriod = this.baseTickPeriod / this.SDF;
             clearTimeout(this.ticktm);
-            this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            this.tick();
         }
 
+    }
+    postMoveAction() {
+        if(this.touchingGround) {
+            //on touch ground
+            if(this.oneLevelHoldPossible && this.oneLevelHoldtm == null) {
+                this.tickPeriod = this.baseTickPeriod;
+                this.oneLevelHoldtm = setTimeout((() => {
+                    this.oneLevelHoldPossible = false;
+                    console.log('one level hold expired. next move will trigger game tick');
+                }).bind(this), this.oneLevelHoldPeriod);
+            }
+
+            //on input if acton performed and touching ground
+            this.touchingGroundInputs--;
+            clearTimeout(this.ticktm);
+            if(this.touchingGroundInputs > 0) {
+                this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            }
+            else{
+                this.tick();
+            }
+        }
+        this.updateTouchingGround();
+        //on input
+        if(!this.oneLevelHoldPossible && !this.touchingGround) {
+            console.log('Too long input. Game tick triggered');
+            this.tick();
+        }
     }
     keyup(e) {
         if(e.repeat) return;
@@ -208,9 +353,12 @@ class Tetris {
         }
 
         if(action == 'sd') {
-            clearTimeout(this.ticktm);
-            this.tickPeriod *= this.SDF;
-            this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            if(this.softDropActive) {
+                this.softDropActive = false;
+                clearTimeout(this.ticktm);
+                this.tickPeriod = this.baseTickPeriod;
+                this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            }
         }
         if(action === 1 || action === -1) {
             
@@ -430,6 +578,11 @@ class Tetris {
         ];
     }
 
+    updateTouchingGround() {
+        this.pieceLoc[1]++;
+        this.touchingGround = this.testIntersection();
+        this.pieceLoc[1]--;
+    }
     draw(timestamp) {  
         // Clear the canvas
         this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
@@ -494,12 +647,35 @@ class Tetris {
     }
 
     tick() {
+        if(this.ticktm)
+        {
+            clearTimeout(this.ticktm);
+        }
+
         this.pieceLoc[1]++;
         if(this.testIntersection())
         {
             this.pieceLoc[1]--;
             this.placePiece();
         }
-        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+        else {
+            this.updateTouchingGround();
+        }
+        if(this.oneLevelHoldtm)
+            clearTimeout(this.oneLevelHoldtm);
+        this.oneLevelHoldPossible = true;
+        if(this.touchingGround){
+            //on touch ground
+            this.oneLevelHoldtm = setTimeout((() => {
+                this.oneLevelHoldPossible = false;
+                console.log("one level hold is expired. next input will trigger tick.");
+            }).bind(this), this.oneLevelHoldPeriod);
+
+
+            this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
+        }
+        else{
+            this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+        }
     }
 }
