@@ -17,7 +17,6 @@ class Tetris {
             [1, 0, 0],
             [0, 1, 0]
         ]
-
         this.pieces = [
             [[1, 1],
             [1, 1]],
@@ -55,10 +54,10 @@ class Tetris {
             [[0, 0], [1, 0], [1, 1], [0, -2], [1, -2]], // 0 -> 3 
         ]
         this.halfRotateKickData = [
-            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
             [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 2 -> 0
-            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
             [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 3 -> 1
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
         ]
         this.rightRotateKickDataI = [
             [[0, 0], [1, 0], [-2, 0], [1, -2], [-2, 1]], // 3 -> 0
@@ -73,10 +72,10 @@ class Tetris {
             [[0, 0], [-1, 0], [2, 0], [-1, 2], [2, -1]], // 0 -> 3
         ]
         this.halfRotateKickDataI = [
-            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
             [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 2 -> 0
-            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
             [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 3 -> 1
+            [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
+            [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
         ]
 
         this.touchingGroundInputsReset = 15;
@@ -113,9 +112,10 @@ class Tetris {
         return piece;
     }
 
-    testIntersection() {
+    testIntersection(testLoc) {
+
         let piece = this.curPiece.piece;
-        let loc = this.pieceLoc;
+        let loc = testLoc || this.pieceLoc;
         for(let i = 0; i < piece.length; i++) {
             for(let j = 0; j < piece[i].length; j++) {
                 if(loc[0] + j < 0 || loc[0] + j > 9 || loc[1] + i > 19) {
@@ -131,6 +131,25 @@ class Tetris {
         }
         return false;
     }
+    clearLines() {
+        let lines = 0;
+        for(let i = 0; i < this.field[0].length; i++) {
+            let full = true;
+            for(let j = 0; j < this.field.length; j++) {
+                if(this.field[j][i] == -1) {
+                    full = false;
+                    break;
+                }
+            }
+            if(full) {
+                lines++;
+                for(let j = 0; j < this.field.length; j++) {
+                    this.field[j].splice(i, 1);
+                    this.field[j].unshift(-1);
+                }
+            }
+        }
+    }
     placePiece() {
         let piece = this.curPiece.piece;
         let loc = this.pieceLoc;
@@ -141,6 +160,7 @@ class Tetris {
                 }
             }
         }
+        this.clearLines();
         this.curPiece = this.getRandomPiece();
         this.pieceLoc = [3, 0];
         if( this.curPiece.color == 0) {
@@ -583,6 +603,15 @@ class Tetris {
         this.touchingGround = this.testIntersection();
         this.pieceLoc[1]--;
     }
+
+    getGhostPieceLoc() {
+        let ghostLoc = [this.pieceLoc[0], this.pieceLoc[1]];
+        while(!this.testIntersection(ghostLoc)) {
+            ghostLoc[1]++;
+        }
+        ghostLoc[1]--;
+        return ghostLoc;
+    }
     draw(timestamp) {  
         // Clear the canvas
         this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
@@ -595,7 +624,7 @@ class Tetris {
         
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.bgtexture);
-        this.gl.uniform3f(this.colorUniformLocation, 1, 1, 1);
+        this.gl.uniform4f(this.colorUniformLocation, 1, 1, 1, 1);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getBgQuad()), this.gl.STATIC_DRAW);
         this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
@@ -603,28 +632,46 @@ class Tetris {
 
         this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+        // draw field
         for(let i = 0; i < this.field.length; i++) {
             for(let j = 0; j < this.field[i].length; j++) {
                 if(this.field[i][j] == -1) {
                     continue;
                 }
                 let color = this.colors[this.field[i][j]];
-                this.gl.uniform3f(this.colorUniformLocation, color[0], color[1], color[2]);
+                this.gl.uniform4f(this.colorUniformLocation, color[0], color[1], color[2], 1);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(i, j)), this.gl.STATIC_DRAW);
                 this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
                 this.gl.drawArrays(primitiveType, offset, 6);
             }
         }
+
+        //draw piece
         for(let i = 0; i < this.curPiece.piece.length; i++) {
             for(let j = 0; j < this.curPiece.piece[i].length; j++) {
                 if(this.curPiece.piece[i][j] == 0) {
                     continue;
                 }
                 let color = this.colors[this.curPiece.color];
-                this.gl.uniform3f(this.colorUniformLocation, color[0], color[1], color[2]);
+                this.gl.uniform4f(this.colorUniformLocation, color[0], color[1], color[2], 1);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(j + this.pieceLoc[0], i + this.pieceLoc[1])), this.gl.STATIC_DRAW);
+                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+                this.gl.drawArrays(primitiveType, offset, 6);
+            }
+        }
+
+        //draw piece shadow
+        this.gl.uniform4f(this.colorUniformLocation, 0.5, 0.5, 0.5, 0.3);
+        let ghostLoc = this.getGhostPieceLoc();
+        for(let i = 0; i < this.curPiece.piece.length; i++) {
+            for(let j = 0; j < this.curPiece.piece[i].length; j++) {
+                if(this.curPiece.piece[i][j] == 0) {
+                    continue;
+                }
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(j + ghostLoc[0], i + ghostLoc[1])), this.gl.STATIC_DRAW);
                 this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
                 this.gl.drawArrays(primitiveType, offset, 6);
             }
