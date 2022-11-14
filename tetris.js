@@ -40,6 +40,8 @@ class Tetris {
             [1, 1, 0],
             [0, 0, 0]]
         ]
+        this.piecesH = [2, 2, 2, 2, 1, 2, 2];
+        this.piecesYoffs = [0,0,0,0,1,0,0];
 
         this.rightRotateKickData = [
             [[0, 0], [-1, 0], [-1, -1], [0, 2], [-1, 2]], // 3 -> 0
@@ -107,7 +109,7 @@ class Tetris {
 
         this.DAS = 160;
         this.ARR = 30;
-        this.SDF = 15;
+        this.SDF = 1000;
         this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
     }
     appendRandomPieces() {
@@ -168,6 +170,15 @@ class Tetris {
         }
     }
     setupPiece() {
+        if(this.DAStm){
+            clearTimeout(this.DAStm);
+            this.setDAStm();
+        }
+        if(this.ARRint) {
+            clearInterval(this.ARRint);
+            this.ARRint = null;
+        }
+
         this.pieceLoc = [3, 0];
         if( this.curPiece.color == 0) {
             this.pieceLoc = [4, 0];
@@ -210,7 +221,6 @@ class Tetris {
         let leftbound = 10;
         let rightbound = -1;
         let piece = this.curPiece.piece;
-        let loc = this.pieceLoc;
         for(let i = 0; i < piece.length; i++) {
             let colTouched = false;
             for(let j = 0; j < piece[i].length; j++) {
@@ -241,6 +251,15 @@ class Tetris {
         if(actionPerformed)
             this.postMoveAction();
     }
+    setDAStm() {
+        if(this.prevMove == undefined)
+            return;
+        this.DAStm = setTimeout(() => {
+            this.ARRint = setInterval(() => {
+                this.movePiece(this.prevMove);
+            }, this.ARR);
+        }, this.DAS);
+    }
     keydown(e) {
         if(e.repeat) return;
         var code = e.keyCode;
@@ -264,30 +283,29 @@ class Tetris {
             case 32: //space
                 action = 'hd'; break; //harddrop
             case 67:
-            case 16: // key c, shift
+            case 65:
+            case 16: // key c, a, shift
                 action = 'h'; break; //hold
                 
 
             default: console.log('Unknown key code: ', code); break;
         }
-        console.log('Key code: ', code);
 
         if(action === 1 || action === -1) {
+            this.prevMove = action;
             this.movePiece(action);
 
             clearTimeout(this.DAStm);
             if(this.ARRint)
                 clearInterval(this.ARRint);
 
-            this.DAStm = setTimeout(() => {
-                this.ARRint = setInterval(() => {
-                    this.movePiece(action);
-                }, this.ARR);
-            }, this.DAS);
+            this.setDAStm();
         }
         else if(action === 'l' || action === 'r' || action === 'll') {
             //rotate piece
+            let actionPerformed = true;
             let piece = this.curPiece.piece;
+            let rotation = this.curRotation;
             let newPiece = new Array(piece[0].length);
             for(let i = 0; i < newPiece.length; i++) {
                 newPiece[i] = new Array(piece.length);
@@ -314,11 +332,8 @@ class Tetris {
             
             this.curPiece.piece = newPiece;
 
-            if(this.curPiece.color == 0) {
-                //square piece
-                //do nothing
-            }
-            else
+            if(this.curPiece.color != 0) {
+                let found = false;
                 for(let i = 0; i < 5; i++) {
                     let locOffset;
                     if(this.curPiece.color == 4) {
@@ -346,15 +361,19 @@ class Tetris {
                         this.pieceLoc[1] += locOffset[1];
                     }
                     else {
-                        if(i > 0) {
-                            // debugger;
-                        }
-                        actionPerformed = true;
+                        found = true;
                         break;
                     }
-                }            
-
-            this.postMoveAction();
+                }  
+                if(!found) {
+                    //cance rotation
+                    this.curPiece.piece = piece;
+                    this.curRotation = rotation;
+                    actionPerformed = false;
+                }
+            }        
+            if(actionPerformed)
+                this.postMoveAction();
         }
         else if(action === 'hd') {
             this.harddrop();
@@ -362,8 +381,11 @@ class Tetris {
         else if(action === 'sd') {
             this.softDropActive = true;
             this.tickPeriod = this.baseTickPeriod / this.SDF;
-            clearTimeout(this.ticktm);
-            this.tick();
+            if(!this.touchingGround) {
+                clearTimeout(this.ticktm);
+                this.tick();
+            }
+                
         }
         else if (action == 'h') {
             if (this.holdPiece == null) {
@@ -401,7 +423,7 @@ class Tetris {
             this.touchingGroundInputs--;
             clearTimeout(this.ticktm);
             if(this.touchingGroundInputs > 0) {
-                this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+                this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
             }
             else{
                 this.tick();
@@ -420,22 +442,24 @@ class Tetris {
         let action = 0;
         switch (code) {
             case 40: action = 'sd'; break; //softdrop
-            case 37: action = 1; break;
-            case 39: action = -1; break; 
+            case 39: action = 1; break;
+            case 37: action = -1; break; 
         }
 
         if(action == 'sd') {
             if(this.softDropActive) {
                 this.softDropActive = false;
-                clearTimeout(this.ticktm);
                 this.tickPeriod = this.baseTickPeriod;
-                this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+                if(!this.touchingGround) {
+                    clearTimeout(this.ticktm);
+                    this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+                }
             }
         }
         if(action === 1 || action === -1) {
             
             clearTimeout(this.DAStm);
-            if(this.ARRint) {
+            if(this.ARRint && this.prevMove === action) {
                 clearInterval(this.ARRint);
                 this.ARRint = null;
             }
@@ -587,7 +611,7 @@ class Tetris {
         // 0.9011304347826087
 
 
-        this.rootLayout = new Layout(10, 2);
+        this.rootLayout = new Layout(10, 8);
         //hold place
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 2], 0.0974576));
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 3], 0.2768361));
@@ -601,15 +625,15 @@ class Tetris {
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 7], 0.9011304347826087));
 
         //queue y
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 1], 0.0603448));
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 2], 0.1862068));
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 3], 0.3120689));
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 4], 0.4379310));
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 5], 0.5637931));
-        // this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 6], 0.6896551));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 1], 0.0603448));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 2], 0.1862068));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 3], 0.3120689));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 4], 0.4379310));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 5], 0.5637931));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 6], 0.6896551));
 
         //image proportions
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 1], ['x', 1, 8], 1.2207));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['x', 1, 8], 1.2207));
 
         // horisontal centering
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 8, 9], 1));
@@ -653,10 +677,10 @@ class Tetris {
 
     getVertices(i, j) {
         let fieldWidth = this.rootLayout.resolvedX[5] - this.rootLayout.resolvedX[4];
-        // let fieldHeight = this.rootLayout.resolvedY[1] - this.rootLayout.resolvedY[0];
+        let sqWidth = fieldWidth / 10;
 
         let xoffs = this.rootLayout.resolvedX[4];
-        let sqWidth = fieldWidth / 10;
+
         let v1x = xoffs + sqWidth * i;
         let v1y = sqWidth * j;
         let v2x = xoffs + sqWidth * (i+1);
@@ -674,11 +698,33 @@ class Tetris {
             v4x, v4y
         ];
     }
+    getSlotVertices(xcoord, ycoord, i, j) {
+        let fieldWidth = this.rootLayout.resolvedX[5] - this.rootLayout.resolvedX[4];
+        let sqWidth = fieldWidth / 10;
+        
+        let v1x = xcoord + sqWidth * i;
+        let v1y = ycoord + sqWidth * j;
+        let v2x = xcoord + sqWidth * (i+1);
+        let v2y = ycoord + sqWidth * (j);
+        let v3x = xcoord + sqWidth * (i);
+        let v3y = ycoord + sqWidth * (j+1);
+        let v4x = xcoord + sqWidth * (i+1);
+        let v4y = ycoord + sqWidth * (j+1);
+        return [
+            v1x, v1y,
+            v2x, v2y,
+            v3x, v3y,
+            v2x, v2y,
+            v3x, v3y,
+            v4x, v4y
+        ];
+        
+    }
 
     getBgQuad() {
         let xoffs = this.rootLayout.resolvedX[1];
         let fieldWidth = this.rootLayout.resolvedX[8] - this.rootLayout.resolvedX[1];
-        let fieldHeight = this.rootLayout.resolvedY[1] - this.rootLayout.resolvedY[0];
+        let fieldHeight = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1] - this.rootLayout.resolvedY[0];
         return [
             xoffs, 0,
             xoffs + fieldWidth, 0,
@@ -768,34 +814,54 @@ class Tetris {
             }
         }
 
-        // gl.bindBuffer(gl.ARRAY_BUFFER, linesBuffer);
-        // var size = 2;          // 2 components per iteration
-        // var type = gl.FLOAT;   // the data is 32bit floats
-        // var normalize = false; // don't normalize the data
-        // var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-        // var offset = 0;        // start at the beginning of the buffer
+        //hold
+        if(this.holdPiece != null && !this.holdPieceUsed) {
+            this.drawAt(2, 3, 1, 2, this.pieces[this.holdPiece], this.holdPiece);
+        }
+        
+        //queue
+        if(this.nextPieceQueue.length > 5) {
+            for(let i = this.nextPieceQueue.length-1; i >= this.nextPieceQueue.length-5; i--) {
 
-        // count = views.length/2;
-        // gl.bindBuffer(gl.ARRAY_BUFFER, viewsBuffer);
-        // gl.vertexAttribPointer(
-        //     positionAttributeLocation, size, type, normalize, stride, offset);
-        // gl.uniform3fv(colorUniformLocation, [0.0, 1.0, 0.5]);
-        // gl.drawArrays(primitiveType, offset, count);
+                this.drawAt(6, 7, this.nextPieceQueue.length-1 - i + 1, this.nextPieceQueue.length-1 - i +2, this.nextPieceQueue[i].piece, this.nextPieceQueue[i].color);
+            }
+        }
 
         window.requestAnimationFrame(this.draw.bind(this));
     }
+    drawAt(x, x2, y, y2, piece, color = 0) {
+        let fieldWidth = this.rootLayout.resolvedX[5] - this.rootLayout.resolvedX[4];
+        let sqWidth = fieldWidth / 10;
+        
+        let xoffs = this.rootLayout.resolvedX[x];
+        let yoffs = this.rootLayout.resolvedY[y];
+        xoffs += (this.rootLayout.resolvedX[x2] - xoffs) / 2 - sqWidth * piece.length/2;
+        yoffs += (this.rootLayout.resolvedY[y2] - yoffs) / 2 - sqWidth * this.piecesH[color]/2 - this.piecesYoffs[color] * sqWidth;
+        
+
+        for(let i = 0; i < piece.length; i++) {
+            for(let j = 0; j < piece[i].length; j++) {
+                if(piece[i][j] == 0) {
+                    continue;
+                }
+                this.gl.uniform4f(this.colorUniformLocation, this.colors[color][0], this.colors[color][1], this.colors[color][2], 1);
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
+                this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getSlotVertices(xoffs, yoffs, j, i)), this.gl.STATIC_DRAW);
+                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+                this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
+            }
+        }
+    }
 
     tick() {
-        if(this.ticktm)
-        {
-            clearTimeout(this.ticktm);
-        }
+        clearTimeout(this.ticktm);
 
         this.pieceLoc[1]++;
-        if(this.testIntersection())
-        {
+        if (this.testIntersection()) {
             this.pieceLoc[1]--;
-            this.placePiece();
+            //if(this.softDropActive && this.touchingGroundInputs == 0 || !this.softDropActive) {  
+                this.placePiece();
+            //}
         }
         else {
             this.updateTouchingGround();
@@ -809,7 +875,6 @@ class Tetris {
                 this.oneLevelHoldPossible = false;
                 console.log("one level hold is expired. next input will trigger tick.");
             }).bind(this), this.oneLevelHoldPeriod);
-
 
             this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
         }

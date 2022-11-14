@@ -509,20 +509,11 @@ class Layout {
         }
 
         console.log(this.resTree);
-        let xg = edge_P_group[Object.keys(edge_P_group)[0]].group;
         for(let edge of Object.keys(edge_P_group)) {
             edge = edge.split(',');
-            if(edge_P_group[edge].group != xg && edge[0] == 'x') {
+            if(!P_groups[edge_P_group[edge].group].fixed) {
                 this.state = LayoutState.Fail;
-                throw new Error('Multiple variables for X detected!');
-            }
-        }
-        let yg = edge_P_group[Object.keys(edge_P_group)[0]].group;
-        for(let edge of Object.keys(edge_P_group)) {
-            edge = edge.split(',');
-            if(edge_P_group[edge].group != yg && edge[0] == 'y') {
-                this.state = LayoutState.Fail;
-                throw new Error('Multiple variables for Y detected!');
+                throw new Error('Layout is not fixed for X!');
             }
         }
 
