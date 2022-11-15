@@ -6,6 +6,7 @@ class Tetris {
         this.bg = [0,0,0];
         this.baseTickPeriod = 1000;
         this.touchTickPeriod = 500;
+        this.spawnTickPeriod = 100;
         this.tickPeriod = this.baseTickPeriod;
         this.oneLevelHoldPeriod = 3000;
         this.colors = [
@@ -83,16 +84,17 @@ class Tetris {
         this.touchingGroundInputsReset = 15;
         this.nextPieceQueue = [];
 
-        this.oneLevelHoldPossible = true;
         this.oneLevelHoldtm = null;
-        this.softDropActive = false;
-        this.touchingGround = false;
-        this.touchingGroundInputs = this.touchingGroundInputsReset;
-        this.curPiece = this.extractPiece();
-        this.curRotation = 0;
-        this.pieceLoc = [4, 0];
         this.holdPiece = null;
-        this.holdUsed = false;
+        this.DAStm = null;
+        this.ARRint = null;
+        
+        this.DAS = 160;
+        this.ARR = 30;
+        this.SDF = 1000;
+        
+        this.curPiece = this.extractPiece();
+        this.setupPiece();
 
 
         this.field = new Array(10);
@@ -103,14 +105,8 @@ class Tetris {
             }
         }
 
-        this.init();
-        this.DAStm = null;
-        this.ARRint = null;
+        this.initGraphics();
 
-        this.DAS = 160;
-        this.ARR = 30;
-        this.SDF = 1000;
-        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
     }
     appendRandomPieces() {
         let pieces = [0, 1, 2, 3, 4, 5, 6];
@@ -179,18 +175,23 @@ class Tetris {
             this.ARRint = null;
         }
 
-        this.pieceLoc = [3, 0];
+        this.pieceLoc = [3, -3];
         if( this.curPiece.color == 0) {
-            this.pieceLoc = [4, 0];
+            this.pieceLoc[0] = 4;
         }
         this.holdUsed = false;
         this.curRotation = 0;
         this.tickPeriod = this.baseTickPeriod;
         this.softDropActive = false;
         this.touchingGroundInputs = this.touchingGroundInputsReset;
+        this.oneLevelHoldPossible = true;
         
+        //console.log('sceduling tick from setupPiece: ', this.tickPeriod);
+        // clearTimeout(this.ticktm);
+        // this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+
         clearTimeout(this.ticktm);
-        this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+        this.ticktm = setTimeout(() => this.tick(), this.spawnTickPeriod);
     }
     placePiece() {
         let piece = this.curPiece.piece;
@@ -208,9 +209,7 @@ class Tetris {
         this.setupPiece();
     }
     harddrop() {
-        while(this.pieceLoc[1] < 20) {
-            if(this.testIntersection())
-                break;
+        while(this.pieceLoc[1] < 20 && !this.testIntersection()) {
             this.pieceLoc[1]++;
         }
         this.pieceLoc[1]--;
@@ -409,6 +408,7 @@ class Tetris {
 
     }
     postMoveAction() {
+        let shouldTick = false;
         if(this.touchingGround) {
             //on touch ground
             if(this.oneLevelHoldPossible && this.oneLevelHoldtm == null) {
@@ -423,18 +423,23 @@ class Tetris {
             this.touchingGroundInputs--;
             clearTimeout(this.ticktm);
             if(this.touchingGroundInputs > 0) {
+                
+                console.log('sceduling tick from postMoveAction: ', this.touchTickPeriod);
                 this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
             }
             else{
-                this.tick();
+                console.log('running tick from postMoveAction');
+                shouldTick = true;
             }
         }
         this.updateTouchingGround();
         //on input
         if(!this.oneLevelHoldPossible && !this.touchingGround) {
             console.log('Too long input. Game tick triggered');
-            this.tick();
+            shouldTick = true;
         }
+        if(shouldTick)
+            this.tick();
     }
     keyup(e) {
         if(e.repeat) return;
@@ -466,7 +471,7 @@ class Tetris {
             this.DAStm = null;
         }
     }
-    async init() {
+    async initGraphics() {
         let canvas = document.querySelector("#c");
         window.addEventListener('keydown',this.keydown.bind(this),false);
         window.addEventListener('keyup',this.keyup.bind(this),false);
@@ -611,7 +616,11 @@ class Tetris {
         // 0.9011304347826087
 
 
-        this.rootLayout = new Layout(10, 8);
+        this.rootLayout = new Layout(10, 9);
+
+        //top gap
+        this.rootLayout.addConstraints(new FixedConstraint(['y', 0, 1], 140));
+
         //hold place
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 2], 0.0974576));
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 3], 0.2768361));
@@ -625,15 +634,15 @@ class Tetris {
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 8], ['x', 1, 7], 0.9011304347826087));
 
         //queue y
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 1], 0.0603448));
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 2], 0.1862068));
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 3], 0.3120689));
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 4], 0.4379310));
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 5], 0.5637931));
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['y', 0, 6], 0.6896551));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 2], 0.0603448));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 3], 0.1862068));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 4], 0.3120689));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 5], 0.4379310));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 6], 0.5637931));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['y', 1, 7], 0.6896551));
 
         //image proportions
-        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 0, 7], ['x', 1, 8], 1.2207));
+        this.rootLayout.addConstraints(new ProportionalConstraint(['y', 1, 8], ['x', 1, 8], 1.2207));
 
         // horisontal centering
         this.rootLayout.addConstraints(new ProportionalConstraint(['x', 0, 1], ['x', 8, 9], 1));
@@ -680,15 +689,16 @@ class Tetris {
         let sqWidth = fieldWidth / 10;
 
         let xoffs = this.rootLayout.resolvedX[4];
+        let yoffs = this.rootLayout.resolvedY[1];
 
         let v1x = xoffs + sqWidth * i;
-        let v1y = sqWidth * j;
+        let v1y = yoffs + sqWidth * j;
         let v2x = xoffs + sqWidth * (i+1);
-        let v2y = sqWidth * (j);
+        let v2y = yoffs + sqWidth * (j);
         let v3x = xoffs + sqWidth * (i);
-        let v3y = sqWidth * (j+1);
+        let v3y = yoffs + sqWidth * (j+1);
         let v4x = xoffs + sqWidth * (i+1);
-        let v4y = sqWidth * (j+1);
+        let v4y = yoffs + sqWidth * (j+1);
         return [
             v1x, v1y,
             v2x, v2y,
@@ -723,15 +733,16 @@ class Tetris {
 
     getBgQuad() {
         let xoffs = this.rootLayout.resolvedX[1];
+        let yoffs = this.rootLayout.resolvedY[1];
         let fieldWidth = this.rootLayout.resolvedX[8] - this.rootLayout.resolvedX[1];
-        let fieldHeight = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1] - this.rootLayout.resolvedY[0];
+        let fieldHeight = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1] - this.rootLayout.resolvedY[1];
         return [
-            xoffs, 0,
-            xoffs + fieldWidth, 0,
-            xoffs, fieldHeight,
-            xoffs, fieldHeight,
-            xoffs + fieldWidth, 0,
-            xoffs + fieldWidth, fieldHeight
+            xoffs, yoffs,
+            xoffs + fieldWidth, yoffs,
+            xoffs, yoffs + fieldHeight,
+            xoffs, yoffs + fieldHeight,
+            xoffs + fieldWidth, yoffs,
+            xoffs + fieldWidth, yoffs + fieldHeight
         ];
     }
 
@@ -816,14 +827,14 @@ class Tetris {
 
         //hold
         if(this.holdPiece != null && !this.holdPieceUsed) {
-            this.drawAt(2, 3, 1, 2, this.pieces[this.holdPiece], this.holdPiece);
+            this.drawAt(2, 3, 2, 3, this.pieces[this.holdPiece], this.holdPiece);
         }
         
         //queue
         if(this.nextPieceQueue.length > 5) {
             for(let i = this.nextPieceQueue.length-1; i >= this.nextPieceQueue.length-5; i--) {
 
-                this.drawAt(6, 7, this.nextPieceQueue.length-1 - i + 1, this.nextPieceQueue.length-1 - i +2, this.nextPieceQueue[i].piece, this.nextPieceQueue[i].color);
+                this.drawAt(6, 7, this.nextPieceQueue.length-1 - i + 2, this.nextPieceQueue.length-1 - i +3, this.nextPieceQueue[i].piece, this.nextPieceQueue[i].color);
             }
         }
 
@@ -856,16 +867,15 @@ class Tetris {
     tick() {
         clearTimeout(this.ticktm);
 
+        let piecePlaced = false;
         this.pieceLoc[1]++;
         if (this.testIntersection()) {
             this.pieceLoc[1]--;
-            //if(this.softDropActive && this.touchingGroundInputs == 0 || !this.softDropActive) {  
-                this.placePiece();
-            //}
+
+            this.placePiece();
+            piecePlaced = true;
         }
-        else {
-            this.updateTouchingGround();
-        }
+        this.updateTouchingGround();
         if(this.oneLevelHoldtm)
             clearTimeout(this.oneLevelHoldtm);
         this.oneLevelHoldPossible = true;
@@ -876,10 +886,12 @@ class Tetris {
                 console.log("one level hold is expired. next input will trigger tick.");
             }).bind(this), this.oneLevelHoldPeriod);
 
+            console.log('sceduling tick in ',  this.touchTickPeriod);
             this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
         }
         else{
-            this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            console.log('sceduling tick in ', !piecePlaced ? this.tickPeriod : this.spawnTickPeriod);
+            this.ticktm = setTimeout(() => this.tick(), !piecePlaced ? this.tickPeriod : this.spawnTickPeriod);
         }
     }
 }
