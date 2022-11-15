@@ -1,7 +1,7 @@
 class Tetris {
-    constructor(name, addScore) {
+    constructor(name, finishGame) {
         this.name = name;
-        this.addScore = addScore;
+        this.finishGame = finishGame;
         this.score = 0;
         this.bg = [0,0,0];
         this.baseTickPeriod = 1000;
@@ -9,6 +9,11 @@ class Tetris {
         this.spawnTickPeriod = 100;
         this.tickPeriod = this.baseTickPeriod;
         this.oneLevelHoldPeriod = 3000;
+        this.score = 0;
+        setTimeout((() => {
+            clearTimeout(this.ticktm);
+            finishGame(true, {score: this.score, name: this.name});
+        }).bind(this),  120000);
         this.colors = [
             [1, 1, 0],
             [1, 0, 1],
@@ -164,6 +169,8 @@ class Tetris {
                 }
             }
         }
+
+        this.score += lines;
     }
     setupPiece() {
         if(this.DAStm){
@@ -224,7 +231,8 @@ class Tetris {
             return false;
         }
         clearTimeout(this.ticktm);
-        alert("U DED")
+        alert("U DED");
+        this.finishGame(false);
         return true;
     }
     harddrop() {

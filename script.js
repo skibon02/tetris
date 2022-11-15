@@ -1,33 +1,52 @@
-// localStorage.setItem("leaderBoard", localStorage.getItem("leaderBoard") || '[]');
-// let leaderboard = JSON.parse(localStorage.getItem("leaderBoard"));
+localStorage.setItem("leaderBoard", localStorage.getItem("leaderBoard") || '[]');
+let leaderboard = JSON.parse(localStorage.getItem("leaderBoard"));
 
-// function genLeaderboard() {
-//     document.querySelector(".leaderboard-content").innerHTML = leaderboard.map((score, index) => `
-//     <div class="leaderboard-item">
-//         <div class="leaderboard-item__rank">${index + 1}</div>
-//         <div class="leaderboard-item__name">${score.name}</div>
-//         <div class="leaderboard-item__score">${score.score}</div>
-//     </div>
-//     `).join("");
-// }
-// genLeaderboard();
+function genLeaderboard() {
+    document.querySelector(".leaderboard-content").innerHTML = leaderboard.map((score, index) => `
+    <div class="leaderboard-item">
+        <div class="leaderboard-item__rank">${index + 1}</div>
+        <div class="leaderboard-item__name">${score.name}</div>
+        <div class="leaderboard-item__score">${score.score}</div>
+    </div>
+    `).join("");
+}
+genLeaderboard();
 
-// function addScore(score) {
-//     leaderboard.push(score);
-//     leaderboard.sort((a, b) => b.score - a.score);
-//     localStorage.setItem("leaderBoard", JSON.stringify(leaderboard));
-//     console.log(leaderboard);
-//     genLeaderboard();
-// }
-// let game;
-// function startGame() {
+document.querySelector('.inp-screen input').addEventListener("keypress", function(event) {
+     if (event.key === "Enter") {
+          event.preventDefault();
+          document.querySelector('.inp-screen button').click();
+     }
+});
+
+function finishGame(win, score) {
+     document.body.className = "inp-screen";
+     game = null;
+     
+     if(!win) {
+          setTimeout(() => {
+               alert('Game Over! I mean you died. Very sad.');
+          }, 500)
+          return;
+     }
+     setTimeout(() => {
+          alert('Your score is ' + score.score + ' lines in 2 minutes!');
+     }, 500)
+     leaderboard.push(score);
+     leaderboard.sort((a, b) => b.score - a.score);
+     localStorage.setItem("leaderBoard", JSON.stringify(leaderboard));
+     console.log(leaderboard);
+     genLeaderboard();
+}
+let game;
+function startGame() {
      document.body.className = "game-screen";
-//     let name = document.querySelector("body div input").value;
+     let name = document.querySelector("body div input").value;
 
-//     // Create a new game object
-//     game = new Tetris(name, addScore);
-// }
-let game = new Tetris("asdf", null);
+     // Create a new game object
+     game = new Tetris(name, finishGame);
+}
+// let game = new Tetris("asdf", null);
 // error case
 // let rootLayout = new Layout(4, 4);
 // rootLayout.addConstraints(new ProportionalConstraint(['x', 1, 2], ['y', 1, 2], 1));
