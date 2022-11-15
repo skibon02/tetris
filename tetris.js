@@ -1,6 +1,5 @@
 class Tetris {
-    constructor(name, finishGame) {
-        this.name = name;
+    constructor(finishGame) {
         this.finishGame = finishGame;
         this.score = 0;
         this.bg = [0,0,0];
@@ -9,10 +8,9 @@ class Tetris {
         this.spawnTickPeriod = 100;
         this.tickPeriod = this.baseTickPeriod;
         this.oneLevelHoldPeriod = 3000;
-        this.score = 0;
         setTimeout((() => {
             clearTimeout(this.ticktm);
-            finishGame(true, {score: this.score, name: this.name});
+            finishGame(true, this.score);
         }).bind(this),  120000);
         this.colors = [
             [1, 1, 0],
@@ -515,19 +513,30 @@ class Tetris {
         this.rootLayout = this.updateLayout(canvas.width, canvas.height);
         this.resizeCanvasToDisplaySize([{target: canvas}]);
             
+        
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         //init shaders
         var vertexShader = this.createShader(gl.VERTEX_SHADER, await fetch("shaders/vert.glsl").then(r=> r.text()));
         var fragmentShader = this.createShader(gl.FRAGMENT_SHADER, await fetch("shaders/frag.glsl").then(r=> r.text()));
-    
-        var program = this.createProgram(vertexShader, fragmentShader);
-        gl.useProgram(program);
+        this.main_program = this.createProgram(vertexShader, fragmentShader);
+        this.main_vao = gl.createVertexArray();
+        gl.useProgram(this.main_program);
+        gl.bindVertexArray(this.main_vao);
 
-        var vao = gl.createVertexArray();
-        gl.bindVertexArray(vao);
         
-        this.positionAttributeLocation = gl.getAttribLocation(program, "a_position");
-        this.texcoordAttributeLocation  = gl.getAttribLocation(program, "a_texcoord");
+        var animeVertShader = this.createShader(gl.VERTEX_SHADER, await fetch("shaders/anime_v.glsl").then(r=> r.text()));
+        var animeFragShader = this.createShader(gl.FRAGMENT_SHADER, await fetch("shaders/anime_f.glsl").then(r=> r.text()));
+        this.anime_program = this.createProgram(animeVertShader, animeFragShader);
+        this.anime_vao = gl.createVertexArray();
 
+        
+        this.positionAttributeLocation = gl.getAttribLocation(this.main_program, "a_position");
+        this.texcoordAttributeLocation  = gl.getAttribLocation(this.main_program, "a_texcoord");
+
+        this.animePosLoc = gl.getAttribLocation(this.anime_program, "a_position");
+
+        //fill buffers attributes in vao
         this.texcoordBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, this.texcoordBuffer);
         let texcoords = [
@@ -539,7 +548,21 @@ class Tetris {
             1.0,  1.0,
         ];
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texcoords), gl.STATIC_DRAW);
+        
         gl.enableVertexAttribArray(this.texcoordAttributeLocation);
+        gl.vertexAttribPointer(this.texcoordAttributeLocation, 2, this.gl.FLOAT, true, 0, 0);
+
+        this.vertexBuffer = this.gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
+        gl.enableVertexAttribArray(this.positionAttributeLocation);
+        gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
+
+        gl.bindVertexArray(this.anime_vao);
+        this.animeQuadBuffer = this.gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.animeQuadBuffer);
+        gl.enableVertexAttribArray(this.animePosLoc);
+        gl.vertexAttribPointer(this.animePosLoc, 2, this.gl.FLOAT, false, 0, 0);
+        gl.bindVertexArray(this.main_vao);
         
         this.texture = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0 + 0);
@@ -571,27 +594,24 @@ class Tetris {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imagebg);
             gl.generateMipmap(gl.TEXTURE_2D);
         }).bind(this));
-        // Tell the attribute how to get data out of texcoordBuffer (ARRAY_BUFFER)
-        var size = 2;          // 2 components per iteration
-        var type = gl.FLOAT;   // the data is 32bit floating point values
-        var normalize = true;  // convert from 0-255 to 0.0-1.0
-        var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next texcoord
-        var offset = 0;        // start at the beginning of the buffer
-        gl.vertexAttribPointer(
-        this.texcoordAttributeLocation, size, type, normalize, stride, offset);
-    
-        gl.enableVertexAttribArray(this.positionAttributeLocation);
+        
     
     
         //setup the viewport
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     
-        this.resolutionUniformLocation = gl.getUniformLocation(program, "u_resolution");
-        this.colorUniformLocation = gl.getUniformLocation(program, "u_color");
-        gl.uniform2f(this.resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
-        
+        this.resolutionUniformLocation = gl.getUniformLocation(this.main_program, "u_resolution");
+        this.colorUniformLocation = gl.getUniformLocation(this.main_program, "u_color");
 
-        this.vertexBuffer = this.gl.createBuffer();
+        this.animeResolutionUniformLocation = gl.getUniformLocation(this.anime_program, "u_resolution");
+
+        gl.useProgram(this.anime_program);
+        gl.uniform2f(this.animeResolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+
+        gl.useProgram(this.main_program);
+        gl.uniform2f(this.resolutionUniformLocation, gl.canvas.width, gl.canvas.height);
+    
+        gl.activeTexture(this.gl.TEXTURE0);
 
 
         //start rendering cycle
@@ -705,7 +725,10 @@ class Tetris {
                 canvas.width  = displayWidth;
                 canvas.height = displayHeight;
                 this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+                this.gl.useProgram(this.main_program);
                 this.gl.uniform2f(this.resolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
+                this.gl.useProgram(this.anime_program);
+                this.gl.uniform2f(this.animeResolutionUniformLocation, this.gl.canvas.width, this.gl.canvas.height);
                 console.log('Canvas resized: ' + displayWidth + "x" + displayHeight);
             }
         }
@@ -793,22 +816,32 @@ class Tetris {
         this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
+        this.gl.useProgram(this.anime_program);
+        this.gl.bindVertexArray(this.anime_vao);
+
+        //draw animation bg
+        let screenX = this.rootLayout.resolvedX[this.rootLayout.resolvedX.length-1];
+        let screenY = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1];
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.animeQuadBuffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([0,0,0,screenY, screenX, 0, screenX,screenY]), this.gl.STATIC_DRAW);
+        this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
         
+
+        
+        this.gl.useProgram(this.main_program);
+        this.gl.bindVertexArray(this.main_vao);
+        //draw field bg
         var primitiveType = this.gl.TRIANGLES;
-        var offset = 0;
         
-        
-        this.gl.activeTexture(this.gl.TEXTURE0);
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.bgtexture);
         this.gl.uniform4f(this.colorUniformLocation, 1, 1, 1, 1);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getBgQuad()), this.gl.STATIC_DRAW);
-        this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.drawArrays(primitiveType, offset, 6);
+        this.gl.drawArrays(primitiveType, 0, 6);
 
-        this.gl.activeTexture(this.gl.TEXTURE0);
-        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
         // draw field
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
         for(let i = 0; i < this.field.length; i++) {
             for(let j = 0; j < this.field[i].length; j++) {
                 if(this.field[i][j] == -1) {
@@ -818,13 +851,12 @@ class Tetris {
                 this.gl.uniform4f(this.colorUniformLocation, color[0], color[1], color[2], 1);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(i, j)), this.gl.STATIC_DRAW);
-                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-                this.gl.drawArrays(primitiveType, offset, 6);
+                this.gl.drawArrays(primitiveType, 0, 6);
             }
         }
         
         //draw piece shadow
-        this.gl.uniform4f(this.colorUniformLocation, 0.5, 0.5, 0.5, 0.3);
+        this.gl.uniform4f(this.colorUniformLocation, 0.8, 0.8, 0.9, .5);
         let ghostLoc = this.getGhostPieceLoc();
         for(let i = 0; i < this.curPiece.piece.length; i++) {
             for(let j = 0; j < this.curPiece.piece[i].length; j++) {
@@ -833,8 +865,7 @@ class Tetris {
                 }
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(j + ghostLoc[0], i + ghostLoc[1])), this.gl.STATIC_DRAW);
-                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-                this.gl.drawArrays(primitiveType, offset, 6);
+                this.gl.drawArrays(primitiveType, 0, 6);
             }
         }
 
@@ -848,8 +879,7 @@ class Tetris {
                 this.gl.uniform4f(this.colorUniformLocation, color[0], color[1], color[2], 1);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getVertices(j + this.pieceLoc[0], i + this.pieceLoc[1])), this.gl.STATIC_DRAW);
-                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
-                this.gl.drawArrays(primitiveType, offset, 6);
+                this.gl.drawArrays(primitiveType, 0, 6);
             }
         }
 
@@ -886,7 +916,6 @@ class Tetris {
                 this.gl.uniform4f(this.colorUniformLocation, this.colors[color][0], this.colors[color][1], this.colors[color][2], 1);
                 this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vertexBuffer);
                 this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.getSlotVertices(xoffs, yoffs, j, i)), this.gl.STATIC_DRAW);
-                this.gl.vertexAttribPointer(this.positionAttributeLocation, 2, this.gl.FLOAT, false, 0, 0);
                 this.gl.drawArrays(this.gl.TRIANGLES, 0, 6);
             }
         }

@@ -2,13 +2,17 @@ localStorage.setItem("leaderBoard", localStorage.getItem("leaderBoard") || '[]')
 let leaderboard = JSON.parse(localStorage.getItem("leaderBoard"));
 
 function genLeaderboard() {
-    document.querySelector(".leaderboard-content").innerHTML = leaderboard.map((score, index) => `
-    <div class="leaderboard-item">
-        <div class="leaderboard-item__rank">${index + 1}</div>
-        <div class="leaderboard-item__name">${score.name}</div>
-        <div class="leaderboard-item__score">${score.score}</div>
-    </div>
-    `).join("");
+     if(leaderboard.length == 0) {
+          document.querySelector(".leaderboard-content").innerHTML = "No scores yet!";
+          return;
+     }
+     document.querySelector(".leaderboard-content").innerHTML = leaderboard.map((score, index) => `
+     <div class="leaderboard-item">
+          <div class="leaderboard-item__rank">${index + 1}</div>
+          <div class="leaderboard-item__name">${score.name}</div>
+          <div class="leaderboard-item__score">${score.score}</div>
+     </div>
+     `).join("");
 }
 genLeaderboard();
 
@@ -18,7 +22,7 @@ document.querySelector('.inp-screen input').addEventListener("keypress", functio
           document.querySelector('.inp-screen button').click();
      }
 });
-
+let name;
 function finishGame(win, score) {
      document.body.className = "inp-screen";
      game = null;
@@ -30,9 +34,9 @@ function finishGame(win, score) {
           return;
      }
      setTimeout(() => {
-          alert('Your score is ' + score.score + ' lines in 2 minutes!');
+          alert('Your score is ' + score + ' lines in 2 minutes!');
      }, 500)
-     leaderboard.push(score);
+     leaderboard.push({name, score});
      leaderboard.sort((a, b) => b.score - a.score);
      localStorage.setItem("leaderBoard", JSON.stringify(leaderboard));
      console.log(leaderboard);
@@ -41,10 +45,10 @@ function finishGame(win, score) {
 let game;
 function startGame() {
      document.body.className = "game-screen";
-     let name = document.querySelector("body div input").value;
+     name = document.querySelector("body div input").value;
 
      // Create a new game object
-     game = new Tetris(name, finishGame);
+     game = new Tetris(finishGame);
 }
 // let game = new Tetris("asdf", null);
 // error case
