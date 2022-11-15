@@ -193,20 +193,39 @@ class Tetris {
         clearTimeout(this.ticktm);
         this.ticktm = setTimeout(() => this.tick(), this.spawnTickPeriod);
     }
+    testDeath() {
+        for(let i = 0; i < 2; i++) {
+            for(let j = 3; j < 7; j++) {
+                if(this.field[j][i] != -1) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
     placePiece() {
         let piece = this.curPiece.piece;
         let loc = this.pieceLoc;
+        let dead = true;
         for(let i = 0; i < piece.length; i++) {
             for(let j = 0; j < piece[i].length; j++) {
                 if(piece[i][j] == 1) {
                     this.field[loc[0] + j][loc[1] + i] = this.curPiece.color;
+                    if(loc[1] + i > 2)
+                        dead = false;
                 }
             }
         }
         this.clearLines();
-
-        this.curPiece = this.extractPiece();
-        this.setupPiece();
+        if(!this.testDeath() && !dead) {
+                    
+            this.curPiece = this.extractPiece();
+            this.setupPiece();
+            return false;
+        }
+        clearTimeout(this.ticktm);
+        alert("U DED")
+        return true;
     }
     harddrop() {
         while(this.pieceLoc[1] < 23 && !this.testIntersection()) {
@@ -873,7 +892,8 @@ class Tetris {
         if (this.testIntersection()) {
             this.pieceLoc[1]--;
 
-            this.placePiece();
+            if(this.placePiece())
+                return;
             piecePlaced = true;
         }
         this.updateTouchingGround();
@@ -891,8 +911,10 @@ class Tetris {
             this.ticktm = setTimeout(() => this.tick(), this.touchTickPeriod);
         }
         else{
-            console.log('sceduling tick in ', !piecePlaced ? this.tickPeriod : this.spawnTickPeriod);
-            this.ticktm = setTimeout(() => this.tick(), !piecePlaced ? this.tickPeriod : this.spawnTickPeriod);
+            if(!piecePlaced) {
+                console.log('sceduling tick in ', this.tickPeriod);
+                this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
+            }
         }
     }
 }
