@@ -99,7 +99,7 @@ class Tetris {
 
         this.field = new Array(10);
         for(let i = 0; i < this.field.length; i++) {
-            this.field[i] = new Array(20);
+            this.field[i] = new Array(23);
             for(let j = 0; j < this.field[i].length; j++) {
                 this.field[i][j] = -1;
             }
@@ -133,7 +133,7 @@ class Tetris {
         let loc = testLoc || this.pieceLoc;
         for(let i = 0; i < piece.length; i++) {
             for(let j = 0; j < piece[i].length; j++) {
-                if(loc[0] + j < 0 || loc[0] + j > 9 || loc[1] + i > 19) {
+                if(loc[0] + j < 0 || loc[0] + j > 9 || loc[1] + i > 22) {
                     if(piece[i][j] == 1) {
                         return true;
                     }
@@ -175,7 +175,7 @@ class Tetris {
             this.ARRint = null;
         }
 
-        this.pieceLoc = [3, -3];
+        this.pieceLoc = [3, 0];
         if( this.curPiece.color == 0) {
             this.pieceLoc[0] = 4;
         }
@@ -209,7 +209,7 @@ class Tetris {
         this.setupPiece();
     }
     harddrop() {
-        while(this.pieceLoc[1] < 20 && !this.testIntersection()) {
+        while(this.pieceLoc[1] < 23 && !this.testIntersection()) {
             this.pieceLoc[1]++;
         }
         this.pieceLoc[1]--;
@@ -690,6 +690,7 @@ class Tetris {
 
         let xoffs = this.rootLayout.resolvedX[4];
         let yoffs = this.rootLayout.resolvedY[1];
+        yoffs -= sqWidth * 3;
 
         let v1x = xoffs + sqWidth * i;
         let v1y = yoffs + sqWidth * j;
