@@ -25,6 +25,7 @@ document.querySelector('.inp-screen input').addEventListener("keypress", functio
 let name;
 function finishGame(win, score) {
      document.body.className = "inp-screen";
+     game.cleanup();
      game = null;
      
      if(!win) {

@@ -1,5 +1,6 @@
 class Tetris {
     constructor(finishGame) {
+        this.stopped = false;
         this.finishGame = finishGame;
         this.score = 0;
         this.bg = [0,0,0];
@@ -498,11 +499,13 @@ class Tetris {
     }
     async initGraphics() {
         let canvas = document.querySelector("#c");
-        window.addEventListener('keydown',this.keydown.bind(this),false);
-        window.addEventListener('keyup',this.keyup.bind(this),false);
+        this.keydownHandler = this.keydown.bind(this);
+        this.keyupHandler = this.keyup.bind(this);
+        window.addEventListener('keydown',this.keydownHandler,false);
+        window.addEventListener('keyup',this.keyupHandler,false);
        
-        const resizeObserver = new ResizeObserver(this.resizeCanvasToDisplaySize.bind(this));
-        resizeObserver.observe(canvas);
+        this.resizeObserver = new ResizeObserver(this.resizeCanvasToDisplaySize.bind(this));
+        this.resizeObserver.observe(canvas);
     
         this.gl = canvas.getContext("webgl2");
         let gl = this.gl;
@@ -510,7 +513,7 @@ class Tetris {
         if (!gl) {
             console.log('No webGL :(');
         }
-        this.rootLayout = this.updateLayout(canvas.width, canvas.height);
+        this.updateLayout(canvas.width, canvas.height);
         this.resizeCanvasToDisplaySize([{target: canvas}]);
             
         
@@ -707,6 +710,8 @@ class Tetris {
         }
     }
     resizeCanvasToDisplaySize(entries) {
+        if(this.stopped)
+            return;
         for(let entry of entries) {
             let canvas = entry.target;
             // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -812,6 +817,9 @@ class Tetris {
         return ghostLoc;
     }
     draw(timestamp) {  
+        if(this.stopped) {
+            return;
+        }
         // Clear the canvas
         this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
@@ -953,5 +961,28 @@ class Tetris {
                 this.ticktm = setTimeout(() => this.tick(), this.tickPeriod);
             }
         }
+    }
+    cleanup() {
+        this.stopped = true;
+        this.resizeObserver.disconnect();
+        clearTimeout(this.ticktm);
+        clearTimeout(this.oneLevelHoldtm);
+        clearTimeout(this.touchTicktm);
+
+        window.removeEventListener('keydown', this.keydownHandler);
+        window.removeEventListener('keyup', this.keyupHandler);
+
+        this.gl.deleteTexture(this.texture);
+        this.gl.deleteTexture(this.bgtexture);
+        this.gl.deleteBuffer(this.vertexBuffer);
+        this.gl.deleteBuffer(this.texCoordBuffer);
+        this.gl.deleteBuffer(this.animeQuadBuffer);
+
+        this.gl.deleteProgram(this.anime_program);
+        this.gl.deleteProgram(this.main_program);
+        this.gl.deleteVertexArray(this.main_vao);
+        this.gl.deleteVertexArray(this.anime_vao);
+
+        //this.gl.getExtension('WEBGL_lose_context').loseContext();
     }
 }
