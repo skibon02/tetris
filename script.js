@@ -1,7 +1,7 @@
 localStorage.setItem("leaderBoard", localStorage.getItem("leaderBoard") || '[]');
 let leaderboard = JSON.parse(localStorage.getItem("leaderBoard"));
 
-let gamemode = "time";
+let gamemode = "score";
 function selectGamemode(gm) {
      gamemode = gm;
      if(gm == "score") {
