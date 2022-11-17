@@ -72,7 +72,7 @@ function startGame() {
      name = document.querySelector("body div input").value;
 
      // Create a new game object
-     game = new Tetris(finishGame, gamemode);
+     game = new Tetris(finishGame, gamemode, (score) => {document.querySelector(".score").innerHTML = score;});
 }
 // let game = new Tetris("asdf", null);
 // error case

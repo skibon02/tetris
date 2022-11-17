@@ -1,5 +1,12 @@
 class Tetris {
-    constructor(finishGame, gamemode) {
+    constructor(finishGame, gamemode, updateStatusText) {
+        this.updateStatusText = updateStatusText;
+        if(gamemode == 'time') {
+            updateStatusText("Time remaining: 2:00");
+        }
+        else {
+            updateStatusText("Score: 0");
+        }
         this.stopped = false;
         this.finishGame = finishGame;
         this.score = 0;
@@ -23,11 +30,21 @@ class Tetris {
         this.prevThemeTimestamp = -10000;
         this.lastTimestamp = 0;
 
+        this.mins = 2;
+        this.secs = 0;
         if(this.gamemode == 'time') {
             setTimeout((() => {
                 clearTimeout(this.ticktm);
                 finishGame(true, this.score/100);
             }).bind(this),  120000);
+            this.statusInterval = setInterval((() => {
+                this.secs -= 1;
+                if(this.secs < 0) {
+                    this.secs = 59;
+                    this.mins -= 1;
+                }
+                this.updateStatusText("Time remaining: " + this.mins + ":" + this.secs);
+            }).bind(this), 1000);
         }
         this.colors = [
             [1, 1, 0],
@@ -100,6 +117,15 @@ class Tetris {
             [[0, 0], [-1, 0], [2, 0], [-1, -2], [2, 1]], // 0 -> 2
             [[0, 0], [1, 0], [-2, 0], [1, 2], [-2, -1]], // 1 -> 3
         ]
+        this.sounds = {
+            'move': [new Audio('sounds/move.mp3')],
+            'rotate': [new Audio('sounds/rotate.mp3')],
+            'hold': [new Audio('sounds/hold.mp3')],
+            'place_0': [new Audio('sounds/place(0).mp3')],
+            'place_1': [new Audio('sounds/place(1).mp3')],
+            'place_4': [new Audio('sounds/place(4).mp3')],
+        }
+        this.soundIndex = 0;
 
         this.touchingGroundInputsReset = 15;
         this.nextPieceQueue = [];
@@ -127,6 +153,13 @@ class Tetris {
 
         this.initGraphics();
 
+    }
+    playsound(sound) {
+        if(this.sounds[sound].length < 5) {
+            this.sounds[sound].push(this.sounds[sound][0].cloneNode());
+        }
+        this.sounds[sound][this.soundIndex % this.sounds[sound].length].play();
+        this.soundIndex++;
     }
     appendRandomPieces() {
         let pieces = [0, 1, 2, 3, 4, 5, 6];
@@ -184,14 +217,27 @@ class Tetris {
                 }
             }
         }
-        if(lines == 4 && !this.B2B) {
-            this.switchTheme();
-            this.B2B = true;
+        if(this.gamemode == 'time') {
+            if(lines == 4 && !this.B2B) {
+                this.switchTheme();
+                this.B2B = true;
+            }
+            if(lines < 4 && lines >= 1 && this.B2B) {
+                this.switchTheme();
+                this.B2B = false;
+            }
         }
-        if(lines < 4 && lines >= 1 && this.B2B) {
-            this.switchTheme();
-            this.B2B = false;
+
+        if(lines == 0 ) {
+            this.playsound('place_0');
         }
+        if(lines >= 1 && lines < 4) {
+            this.playsound('place_1');
+        }
+        if(lines == 4) {
+            this.playsound('place_4');
+        }
+
         let scorePerLevel = 400;
         if(this.gamemode == 'score') {
             if(Math.floor(this.score / scorePerLevel) != Math.floor((this.score + lines * 100) / scorePerLevel)) {
@@ -201,6 +247,8 @@ class Tetris {
             }
         }
         this.score += lines * 100;
+        if(gamemode == 'score')
+            this.updateStatusText("Score: " + this.score);
     }
     setupPiece() {
         if(this.DAStm){
@@ -241,17 +289,28 @@ class Tetris {
         return false;
     }
     switchTheme() {
-        let tmp = this.bgColor1;
-        this.bgColor1 = this.bgColor2;
-        this.bgColor2 = tmp;
-        
-        tmp = this.shapeColor1;
-        this.shapeColor1 = this.shapeColor2;
-        this.shapeColor2 = tmp;
+        if(this.gamemode == 'time') {
+            let tmp = this.bgColor1;
+            this.bgColor1 = this.bgColor2;
+            this.bgColor2 = tmp;
+            
+            tmp = this.shapeColor1;
+            this.shapeColor1 = this.shapeColor2;
+            this.shapeColor2 = tmp;
 
-        tmp = this.wavesColor1;
-        this.wavesColor1 = this.wavesColor2;
-        this.wavesColor2 = tmp;
+            tmp = this.wavesColor1;
+            this.wavesColor1 = this.wavesColor2;
+            this.wavesColor2 = tmp;
+        }
+        else {
+            this.bgColor2 = this.bgColor1;
+            this.shapeColor2 = this.shapeColor1;
+            this.wavesColor2 = this.wavesColor1;
+
+            this.bgColor1 = [Math.random(), Math.random(), Math.random()];
+            this.shapeColor1 = [Math.random(), Math.random(), Math.random()];
+            this.wavesColor1 = [Math.random(), Math.random(), Math.random()];
+        }
 
         this.prevThemeTimestamp = this.lastTimestamp;
     }
@@ -323,8 +382,10 @@ class Tetris {
             actionPerformed = false;
         }
 
-        if(actionPerformed)
+        if(actionPerformed) {
             this.postMoveAction();
+            this.playsound('move');
+        }
     }
     setDAStm() {
         if(this.prevMove == undefined)
@@ -447,8 +508,10 @@ class Tetris {
                     actionPerformed = false;
                 }
             }        
-            if(actionPerformed)
+            if(actionPerformed) {
                 this.postMoveAction();
+                this.playsound('rotate');
+            }
         }
         else if(action === 'hd') {
             this.harddrop();
@@ -463,6 +526,7 @@ class Tetris {
                 
         }
         else if (action == 'h') {
+            this.playsound('hold');
             if (this.holdPiece == null) {
                 this.holdPiece = this.curPiece.color;
                 this.curPiece = this.extractPiece();
@@ -1086,6 +1150,7 @@ class Tetris {
         window.removeEventListener('keydown', this.keydownHandler);
         window.removeEventListener('keyup', this.keyupHandler);
 
+        this.updateStatusText("");
         this.gl.deleteTexture(this.texture);
         this.gl.deleteTexture(this.bgtexture);
         this.gl.deleteBuffer(this.vertexBuffer);
@@ -1096,6 +1161,8 @@ class Tetris {
         this.gl.deleteProgram(this.main_program);
         this.gl.deleteVertexArray(this.main_vao);
         this.gl.deleteVertexArray(this.anime_vao);
+
+        clearInterval(this.statusInterval);
 
         //this.gl.getExtension('WEBGL_lose_context').loseContext();
     }

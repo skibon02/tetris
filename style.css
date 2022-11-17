@@ -161,3 +161,12 @@ button:active {
 .gamemode > div:active {
     box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 0px 2px inset;
 }
+
+.score {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translate(-50%, 0);
+    font-size: 2em;
+    color: #a25acf;
+}
