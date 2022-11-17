@@ -64,7 +64,7 @@ button {
 }
 input {
     width: 12em;
-    box-shadow: rgba(0, 0, 0, 0.4) 1.5px 1.5px 0px 2px inset;
+    box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 0px 2px inset;
 
     text-align: center;
 }
@@ -76,9 +76,11 @@ canvas {
 }
 button {
     margin-left: 1em;
+    background-clip: padding-box;
 }
 button:active {
-    box-shadow: rgba(0, 0, 0, 0.4) 1.5px 1.5px 0px 2px inset;
+    box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 0px 2px inset;
+    border-color: transparent;
 }
 
 .inp-screen canvas.full {
@@ -98,6 +100,8 @@ button:active {
     left: 0;
     top: 50%;
     transform: translateY(-50%);
+
+    font-size: 1.1em;
 }
 .leaderboard-item {
     display: flex;
@@ -105,4 +109,55 @@ button:active {
 }
 .leaderboard-item > div {
     margin: 0 1em;
+}
+
+.gamemode {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin: 1em 0;
+}
+
+.gamemode-time {
+    background:rgb(122, 157, 231);
+    border: 2px solid rgb(17, 78, 192);
+    color: #5656ef;
+}
+.gamemode-score {
+    background:rgb(243, 195, 105);
+    border: 2px solid rgb(230, 157, 23);
+    color: #d28b1a;
+}
+
+.gamemode > div {
+    margin: 0 1em;
+    border-radius: 1.5em;
+    cursor: pointer;
+    user-select: none;
+    text-align: center;
+    width: 7em;
+    height: 7em;
+}
+.gamemode > div > * {
+    margin-top: 2.2em;
+    display: inline-block;
+    vertical-align: middle;
+}
+.gamemode img {
+    width: 2em;
+    height: 2em;
+    margin-right: .5em;
+    margin-top: 2.4em;
+}
+.gamemode > div p {
+    font-size: 1.2em;
+    /* font-weight: bold; */
+}
+.gamemode > div.active {
+    box-shadow: 0 0 0 2px white;
+}
+
+.gamemode > div:active {
+    box-shadow: rgba(0, 0, 0, 0.4) 1px 1px 0px 2px inset;
 }

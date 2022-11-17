@@ -1,6 +1,20 @@
 localStorage.setItem("leaderBoard", localStorage.getItem("leaderBoard") || '[]');
 let leaderboard = JSON.parse(localStorage.getItem("leaderBoard"));
 
+let gamemode = "time";
+function selectGamemode(gm) {
+     gamemode = gm;
+     if(gm == "score") {
+          document.querySelector(".gamemode-score").classList.add("active");
+          document.querySelector(".gamemode-time").classList.remove("active");
+     }
+     else {
+          document.querySelector(".gamemode-score").classList.remove("active");
+          document.querySelector(".gamemode-time").classList.add("active");
+     }
+
+}
+
 function genLeaderboard() {
      if(leaderboard.length == 0) {
           document.querySelector(".leaderboard-content").innerHTML = "No scores yet!";
@@ -29,14 +43,23 @@ function finishGame(win, score) {
      game = null;
      
      if(!win) {
-          setTimeout(() => {
-               alert('Game Over! I mean you died. Very sad.');
-          }, 500)
-          return;
+          if(gamemode == "time") {
+               setTimeout(() => {
+                    alert('Game Over! I mean you died. Very sad.');
+               }, 500)
+               return;
+          }
+          else {
+               setTimeout(() => {
+                    alert('Game Over! Your score is: ' + score);
+               }, 500)
+          }
      }
-     setTimeout(() => {
-          alert('Your score is ' + score + ' lines in 2 minutes!');
-     }, 500)
+     if(gamemode == "time") {
+          setTimeout(() => {
+               alert('Your score is ' + score + ' lines in 2 minutes!');
+          }, 500)
+     }
      leaderboard.push({name, score});
      leaderboard.sort((a, b) => b.score - a.score);
      localStorage.setItem("leaderBoard", JSON.stringify(leaderboard));
@@ -49,7 +72,7 @@ function startGame() {
      name = document.querySelector("body div input").value;
 
      // Create a new game object
-     game = new Tetris(finishGame);
+     game = new Tetris(finishGame, gamemode);
 }
 // let game = new Tetris("asdf", null);
 // error case

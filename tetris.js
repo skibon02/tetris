@@ -1,13 +1,14 @@
 class Tetris {
-    constructor(finishGame) {
+    constructor(finishGame, gamemode) {
         this.stopped = false;
         this.finishGame = finishGame;
         this.score = 0;
-        this.baseTickPeriod = 1000;
+        this.baseTickPeriod = 1000; // gravity
         this.touchTickPeriod = 500;
         this.spawnTickPeriod = 100;
         this.tickPeriod = this.baseTickPeriod;
         this.oneLevelHoldPeriod = 3000;
+        this.gamemode = gamemode;
 
         this.bgColor2 = [1, 0.7, 0.85];
         this.shapeColor2 = [1, 0.9, 1];
@@ -22,10 +23,12 @@ class Tetris {
         this.prevThemeTimestamp = -10000;
         this.lastTimestamp = 0;
 
-        setTimeout((() => {
-            clearTimeout(this.ticktm);
-            finishGame(true, this.score);
-        }).bind(this),  120000);
+        if(this.gamemode == 'time') {
+            setTimeout((() => {
+                clearTimeout(this.ticktm);
+                finishGame(true, this.score/100);
+            }).bind(this),  120000);
+        }
         this.colors = [
             [1, 1, 0],
             [1, 0, 1],
@@ -106,8 +109,8 @@ class Tetris {
         this.DAStm = null;
         this.ARRint = null;
         
-        this.DAS = 160;
-        this.ARR = 30;
+        this.DAS = 150;
+        this.ARR = 1;
         this.SDF = 1000;
         
         this.curPiece = this.extractPiece();
@@ -189,8 +192,15 @@ class Tetris {
             this.switchTheme();
             this.B2B = false;
         }
-
-        this.score += lines;
+        let scorePerLevel = 400;
+        if(this.gamemode == 'score') {
+            if(Math.floor(this.score / scorePerLevel) != Math.floor((this.score + lines * 100) / scorePerLevel)) {
+                //new level
+                this.switchTheme();
+                this.baseTickPeriod *= 0.8;
+            }
+        }
+        this.score += lines * 100;
     }
     setupPiece() {
         if(this.DAStm){
@@ -266,7 +276,12 @@ class Tetris {
         }
         clearTimeout(this.ticktm);
         alert("U DED");
-        this.finishGame(false);
+        if(this.gamemode == 'score') {
+            this.finishGame(false, this.score);
+        }
+        else {
+            this.finishGame(false);
+        }
         return true;
     }
     harddrop() {

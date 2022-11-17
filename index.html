@@ -18,7 +18,16 @@
                 <input type="text">
                 <button onclick="startGame()">Start the game</button>
             </div>
-            
+            <div class="gamemode">
+                <div class="gamemode-time active" onclick="selectGamemode('time')">
+                    <img src="resources/time.png" alt="time-icon">
+                    <p>Time</p>
+                </div>
+                <div class="gamemode-score" onclick="selectGamemode('score')">
+                    <img src="resources/score.png" alt="score-icon">
+                    <p>Score</p>
+                </div>
+            </div>
         </div>
     </div>
     <div class="leaderboard">
