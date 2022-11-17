@@ -135,9 +135,9 @@ class Tetris {
         this.DAStm = null;
         this.ARRint = null;
         
-        this.DAS = 150;
-        this.ARR = 1;
-        this.SDF = 1000;
+        this.DAS = 180;
+        this.ARR = 30;
+        this.SDF = 16;
         
         this.curPiece = this.extractPiece();
         this.setupPiece();
