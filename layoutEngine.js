@@ -171,15 +171,11 @@ class Layout {
             return treeEdge.value * dir;
         }
         else {
-            console.log("Launch recursive search inside group " + f_group);
-            console.log("Vertices in group: ");
             let touched = {};
             for(let v of this.F_groups[axis][f_group]) {
                 touched[v] = false;
-                console.log(v + " ");
             }
             let res  = this.findDFS(v1, v2, touched, axis, 0);
-            console.log("Distance between " + v1 + " and " + v2 + " is " + res);
             return res;
         }
     }

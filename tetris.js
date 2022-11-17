@@ -567,6 +567,7 @@ class Tetris {
         gl.vertexAttribPointer(this.animePosLoc, 2, this.gl.FLOAT, false, 0, 0);
         gl.bindVertexArray(this.main_vao);
         
+        // load textures
         this.texture = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0 + 0);
         gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -599,6 +600,24 @@ class Tetris {
         }).bind(this));
         
     
+            
+        this.shapebg = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + 1);
+        gl.bindTexture(gl.TEXTURE_2D, this.shapebg);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
+            new Uint8Array([0, 0, 255, 255]));
+
+        var shapebg = new Image();
+        shapebg.src = "resources/star.png";
+        shapebg.addEventListener('load', (function() {
+        // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, this.shapebg);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, shapebg);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }).bind(this));
     
         //setup the viewport
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -607,6 +626,11 @@ class Tetris {
         this.colorUniformLocation = gl.getUniformLocation(this.main_program, "u_color");
 
         this.animeResolutionUniformLocation = gl.getUniformLocation(this.anime_program, "u_resolution");
+        this.shapeColorLoc = gl.getUniformLocation(this.anime_program, "u_shapecol");
+        this.bgColorLoc = gl.getUniformLocation(this.anime_program, "u_bgcol");
+        this.wavesColorLoc = gl.getUniformLocation(this.anime_program, "u_wavescol");
+        this.animeWorldUniformLocation = gl.getUniformLocation(this.anime_program, "u_world");
+        this.animTimeLoc = gl.getUniformLocation(this.anime_program, "u_time");
 
         gl.useProgram(this.anime_program);
         gl.uniform2f(this.animeResolutionUniformLocation, gl.canvas.width, gl.canvas.height);
@@ -830,7 +854,16 @@ class Tetris {
         //draw animation bg
         let screenX = this.rootLayout.resolvedX[this.rootLayout.resolvedX.length-1];
         let screenY = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1];
+        this.gl.uniform4f(this.shapeColorLoc, 1, 0.7, 0.85, 1.0);
+        this.gl.uniform4f(this.bgColorLoc, this.bg[0], this.bg[1], this.bg[2], 1);
+        this.gl.uniform4f(this.wavesColorLoc, 1.0, 0.5, 1.0, 0.8);
+        this.gl.uniform1f(this.animTimeLoc, timestamp / 1000);
 
+
+        let scaleFactor = Math.abs(Math.sin(timestamp / 100))/2 + 3;
+        let rotationAngle = timestamp / 1000;
+        this.gl.uniformMatrix3fv(this.animeWorldUniformLocation, false, m3.rotate(m3.scale(m3.identity(), scaleFactor, scaleFactor), rotationAngle));
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.shapebg);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.animeQuadBuffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([0,0,0,screenY, screenX, 0, screenX,screenY]), this.gl.STATIC_DRAW);
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
