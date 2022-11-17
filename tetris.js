@@ -3,12 +3,25 @@ class Tetris {
         this.stopped = false;
         this.finishGame = finishGame;
         this.score = 0;
-        this.bg = [0,0,0];
         this.baseTickPeriod = 1000;
         this.touchTickPeriod = 500;
         this.spawnTickPeriod = 100;
         this.tickPeriod = this.baseTickPeriod;
         this.oneLevelHoldPeriod = 3000;
+
+        this.bgColor2 = [1, 0.7, 0.85];
+        this.shapeColor2 = [1, 0.9, 1];
+        this.wavesColor2 = [0.7, 0.9, 1];
+
+        this.bgColor1 = [1, 0.9, 1];
+        this.shapeColor1 = [1, 0.7, 0.85];
+        this.wavesColor1 = [1, 0.8, 1];
+
+        this.B2B = false;
+
+        this.prevThemeTimestamp = -10000;
+        this.lastTimestamp = 0;
+
         setTimeout((() => {
             clearTimeout(this.ticktm);
             finishGame(true, this.score);
@@ -168,6 +181,14 @@ class Tetris {
                 }
             }
         }
+        if(lines == 4 && !this.B2B) {
+            this.switchTheme();
+            this.B2B = true;
+        }
+        if(lines < 4 && lines > 1 && this.B2B) {
+            this.switchTheme();
+            this.B2B = false;
+        }
 
         this.score += lines;
     }
@@ -209,6 +230,21 @@ class Tetris {
         }
         return false;
     }
+    switchTheme() {
+        let tmp = this.bgColor1;
+        this.bgColor1 = this.bgColor2;
+        this.bgColor2 = tmp;
+        
+        tmp = this.shapeColor1;
+        this.shapeColor1 = this.shapeColor2;
+        this.shapeColor2 = tmp;
+
+        tmp = this.wavesColor1;
+        this.wavesColor1 = this.wavesColor2;
+        this.wavesColor2 = tmp;
+
+        this.prevThemeTimestamp = this.lastTimestamp;
+    }
     placePiece() {
         let piece = this.curPiece.piece;
         let loc = this.pieceLoc;
@@ -224,7 +260,6 @@ class Tetris {
         }
         this.clearLines();
         if(!this.testDeath() && !dead) {
-                    
             this.curPiece = this.extractPiece();
             this.setupPiece();
             return false;
@@ -626,11 +661,19 @@ class Tetris {
         this.colorUniformLocation = gl.getUniformLocation(this.main_program, "u_color");
 
         this.animeResolutionUniformLocation = gl.getUniformLocation(this.anime_program, "u_resolution");
-        this.shapeColorLoc = gl.getUniformLocation(this.anime_program, "u_shapecol");
-        this.bgColorLoc = gl.getUniformLocation(this.anime_program, "u_bgcol");
-        this.wavesColorLoc = gl.getUniformLocation(this.anime_program, "u_wavescol");
+
+
+        this.shapeColor1Loc = gl.getUniformLocation(this.anime_program, "u_shapecol1");
+        this.bgColor1Loc = gl.getUniformLocation(this.anime_program, "u_bgcol1");
+        this.wavesColor1Loc = gl.getUniformLocation(this.anime_program, "u_wavescol1");
+        
+        this.shapeColor2Loc = gl.getUniformLocation(this.anime_program, "u_shapecol2");
+        this.bgColor2Loc = gl.getUniformLocation(this.anime_program, "u_bgcol2");
+        this.wavesColor2Loc = gl.getUniformLocation(this.anime_program, "u_wavescol2");
+
         this.animeWorldUniformLocation = gl.getUniformLocation(this.anime_program, "u_world");
         this.animTimeLoc = gl.getUniformLocation(this.anime_program, "u_time");
+        this.translationRadiusLoc = gl.getUniformLocation(this.anime_program, "u_translationRadius");
 
         gl.useProgram(this.anime_program);
         gl.uniform2f(this.animeResolutionUniformLocation, gl.canvas.width, gl.canvas.height);
@@ -724,12 +767,11 @@ class Tetris {
             this.rootLayout.buildFixed(w, h);
         }
         catch(e) {
-            this.bg = [1, 0.3, 0.6];
+            this.bgColor2 = [1, 0.3, 0.6];
             console.log(e)
         }
     
         if(this.rootLayout.getState() == LayoutState.Ok) {
-            this.bg = [1, 0.9, 1];
             console.log('Layout built successfully!');
         }
     }
@@ -841,11 +883,12 @@ class Tetris {
         return ghostLoc;
     }
     draw(timestamp) {  
+        this.lastTimestamp = timestamp;
         if(this.stopped) {
             return;
         }
         // Clear the canvas
-        this.gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
+        this.gl.clearColor(this.bgColor2[0],this.bgColor2[1], this.bgColor2[2], 1);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         this.gl.useProgram(this.anime_program);
@@ -854,14 +897,37 @@ class Tetris {
         //draw animation bg
         let screenX = this.rootLayout.resolvedX[this.rootLayout.resolvedX.length-1];
         let screenY = this.rootLayout.resolvedY[this.rootLayout.resolvedY.length-1];
-        this.gl.uniform4f(this.shapeColorLoc, 1, 0.7, 0.85, 1.0);
-        this.gl.uniform4f(this.bgColorLoc, this.bg[0], this.bg[1], this.bg[2], 1);
-        this.gl.uniform4f(this.wavesColorLoc, 1.0, 0.5, 1.0, 0.8);
-        this.gl.uniform1f(this.animTimeLoc, timestamp / 1000);
+        this.gl.uniform4f(this.shapeColor1Loc, this.shapeColor1[0],this.shapeColor1[1], this.shapeColor1[2], 1.0);
+        this.gl.uniform4f(this.bgColor1Loc, this.bgColor1[0],this.bgColor1[1], this.bgColor1[2], 1);
+        this.gl.uniform4f(this.wavesColor1Loc, this.wavesColor1[0], this.wavesColor1[1], this.wavesColor1[2], 1.0);
 
+        this.gl.uniform4f(this.shapeColor2Loc, this.shapeColor2[0], this.shapeColor2[1], this.shapeColor2[2], 1);
+        this.gl.uniform4f(this.bgColor2Loc, this.bgColor2[0],this.bgColor2[1], this.bgColor2[2], 1.0);
+        this.gl.uniform4f(this.wavesColor2Loc, this.wavesColor2[0], this.wavesColor2[1], this.wavesColor2[2], 1.0);
 
-        let scaleFactor = Math.abs(Math.sin(timestamp / 100))/2 + 3;
-        let rotationAngle = timestamp / 1000;
+        if(this.B2B) {
+            this.gl.uniform1f(this.animTimeLoc, timestamp / 600);
+        }
+        else {
+            this.gl.uniform1f(this.animTimeLoc, timestamp / 1000);
+        }
+
+        let radius = (timestamp - this.prevThemeTimestamp) / 400;
+        radius = Math.pow(radius, 0.6);
+        this.gl.uniform1f(this.translationRadiusLoc, radius);
+
+        let scaleFactor, rotationAngle;
+        if(this.B2B) {
+            scaleFactor = Math.abs(Math.sin(timestamp / 80))/2 + 2;
+            let normalScaleFactor =  Math.abs(Math.sin(timestamp / 100))/2 + 3;
+            if(radius < 1) {
+                scaleFactor = scaleFactor * radius + normalScaleFactor * (1 - radius);
+            }
+            rotationAngle = timestamp / 800;
+        } else {
+            scaleFactor = Math.abs(Math.sin(timestamp / 100))/2 + 3;
+            rotationAngle = timestamp / 1000;
+        }
         this.gl.uniformMatrix3fv(this.animeWorldUniformLocation, false, m3.rotate(m3.scale(m3.identity(), scaleFactor, scaleFactor), rotationAngle));
         this.gl.bindTexture(this.gl.TEXTURE_2D, this.shapebg);
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.animeQuadBuffer);
