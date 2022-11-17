@@ -185,7 +185,7 @@ class Tetris {
             this.switchTheme();
             this.B2B = true;
         }
-        if(lines < 4 && lines > 1 && this.B2B) {
+        if(lines < 4 && lines >= 1 && this.B2B) {
             this.switchTheme();
             this.B2B = false;
         }
