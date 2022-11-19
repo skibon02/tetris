@@ -19,6 +19,8 @@ For example, for setting ARR value to 20ms, open the console(F12) and enter the 
 ```js
 game.setARR(20);
 ```
+
+In-game mechanics were constructed most closely to tetr.io with attempt to recreate timings and game logic, kick table was taken from wikipedia page: https://tetris.wiki/Super_Rotation_System.
 # Structire 
 There are 2 most important and big classes, located in files `layoutEngine.js` and  `tetris.js`
 
