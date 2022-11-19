@@ -135,9 +135,9 @@ class Tetris {
         this.DAStm = null;
         this.ARRint = null;
         
-        this.DAS = 180;
-        this.ARR = 30;
-        this.SDF = 16;
+        this.DAS = localStorage['DAS'] || 180;
+        this.ARR = localStorage['ARR'] || 30;
+        this.SDF = localStorage['SDF'] || 15;
         
         this.curPiece = this.extractPiece();
         this.setupPiece();
@@ -154,6 +154,19 @@ class Tetris {
         this.initGraphics();
 
     }
+    setDAS(DAS) {
+        this.DAS = DAS;
+        localStorage['DAS'] = DAS;
+    }
+    setARR(ARR) {
+        this.ARR = ARR;
+        localStorage['ARR'] = ARR;
+    }
+    setSDF(SDF) {
+        this.SDF = SDF;
+        localStorage['SDF'] = SDF;
+    }
+
     playsound(sound) {
         if(this.sounds[sound].length < 5) {
             this.sounds[sound].push(this.sounds[sound][0].cloneNode());
@@ -334,7 +347,6 @@ class Tetris {
             return false;
         }
         clearTimeout(this.ticktm);
-        alert("U DED");
         if(this.gamemode == 'score') {
             this.finishGame(false, this.score);
         }

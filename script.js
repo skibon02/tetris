@@ -40,7 +40,7 @@ let name;
 function finishGame(win, score) {
      document.body.className = "inp-screen";
      game.cleanup();
-     game = null;
+     game = new GameStub();
      
      if(!win) {
           if(gamemode == "time") {
@@ -66,7 +66,22 @@ function finishGame(win, score) {
      console.log(leaderboard);
      genLeaderboard();
 }
-let game;
+
+class GameStub {
+     constructor() {
+          
+     }
+     setDAS(DAS) {
+          localStorage.setItem("DAS", DAS);
+     }
+     setARR(ARR) {
+          localStorage.setItem("ARR", ARR);
+     }
+     setSDF(SDF) {
+          localStorage.setItem("SDF", SDF);
+     }
+}
+let game = new GameStub();
 function startGame() {
      document.body.className = "game-screen";
      name = document.querySelector("body div input").value;
@@ -74,6 +89,7 @@ function startGame() {
      // Create a new game object
      game = new Tetris(finishGame, gamemode, (score) => {document.querySelector(".score").innerHTML = score;});
 }
+
 // let game = new Tetris("asdf", null);
 // error case
 // let rootLayout = new Layout(4, 4);
