@@ -1,4 +1,6 @@
 # Tetris!
+![image](https://github.com/skibon02/tetris/assets/25740003/c1af6211-f86e-4e84-b5ec-f03a7ddb8298)
+
 
 Hello!
 This is tetris in javascript with two modes:
